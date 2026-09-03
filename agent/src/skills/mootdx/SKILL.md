@@ -1,12 +1,12 @@
 ---
 name: mootdx
 category: data-source
-description: Mootdx A-share market data via TCP-direct 通达信 servers. Free, no API key, no IP rate limits. Use as the stable A-share OHLCV fallback when akshare's East Money scrape is throttled.
+description: Mootdx A-share market data via TCP-direct Tongdaxin (TDX) servers — free, no API key, no IP rate limits — used as the stable A-share OHLCV fallback when akshare's East Money scrape is throttled.
 ---
 
 ## Overview
 
-Mootdx talks the native 通达信 (TDX) binary protocol over TCP, bypassing the HTTP scrapers that periodically fail under load (akshare → East Money is the canonical example). Public market data only — no token, no per-IP throttling, no captcha.
+Mootdx talks the native Tongdaxin (TDX) binary protocol over TCP, bypassing the HTTP scrapers that periodically fail under load (akshare → East Money is the canonical example). Public market data only — no token, no per-IP throttling, no captcha.
 
 - GitHub: https://github.com/mootdx/mootdx
 - Install: `pip install mootdx && pip install 'httpx>=0.28.1'`
@@ -18,7 +18,7 @@ Mootdx talks the native 通达信 (TDX) binary protocol over TCP, bypassing the 
 ```python
 from mootdx.quotes import Quotes
 
-client = Quotes.factory(market="std")  # std = 沪/深/京; ext = 期货/期权 (upstream-broken)
+client = Quotes.factory(market="std")  # std = Shanghai/Shenzhen/Beijing; ext = futures/options (upstream-broken)
 
 # Daily OHLCV with a date range (preferred API).
 df = client.get_k_data(code="000001", start_date="2025-01-01", end_date="2025-02-01")
@@ -82,13 +82,13 @@ result = run(strategy=..., source="mootdx")  # explicit override
 
 | Limitation | Workaround |
 |------------|------------|
-| 北交所 (BJ): `get_k_data` raises `KeyError`, `bars()` returns empty (upstream missing data) | Loader logs a warning and skips BJ symbols — use akshare or tushare |
+| Beijing Stock Exchange (BJ): `get_k_data` raises `KeyError`, `bars()` returns empty (upstream missing data) | Loader logs a warning and skips BJ symbols — use akshare or tushare |
 | Extended market (futures/options) returns empty as of v0.11.7 (upstream issue) | Use tushare/akshare for futures |
 | Each `bars()` page is 800 rows; loader paginates back up to 25 pages (≈10y daily / ≈5y 1H / ≈3mo 1m) | For longer 1m history use tushare minute bars |
 | Server selection has cold-start latency (first call picks the fastest server) | First call may be ~2s slower |
-| Returns data in 前复权 by default — no API parameter for 不复权 | Use tushare/akshare if raw prices are required |
+| Returns forward-adjusted (qfq) prices by default — no API parameter for unadjusted (raw) prices | Use tushare/akshare if raw prices are required |
 
 ## Reference Docs
 
-- Mootdx 文档: https://www.mootdx.com/
-- 通达信协议参考: https://github.com/rainx/pytdx
+- Mootdx docs: https://www.mootdx.com/
+- TDX protocol reference (pytdx): https://github.com/rainx/pytdx

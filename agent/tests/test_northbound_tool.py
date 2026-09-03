@@ -151,7 +151,7 @@ class TestRoutingDescription:
     def test_description_leads_with_market_wide_stock_connect(self):
         desc = nb.NorthboundFlowTool().description
         assert desc.startswith("MARKET-WIDE Northbound")
-        assert "北向" in desc
+        assert "Stock-Connect" in desc
         # Disambiguates against the per-stock tool.
         assert "get_fund_flow" in desc
         assert "NOT per-stock" in desc

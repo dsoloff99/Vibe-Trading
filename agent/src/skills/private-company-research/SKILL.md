@@ -36,7 +36,7 @@ Six lenses, best run **in parallel** (via `run_swarm`, one worker per lens; or s
 | business-decoder | Business model + product/user analysis: "what is this business, essentially" |
 | financial-detective | Financial patchwork + valuation: "recover the true financial picture under missing data" |
 | competitive-mapper | Industry + competition + substitution: "who competes, who could disrupt" |
-| risk-governance-analyst | Risk全景 + management/governance/investors: "what could go wrong, who's at the helm" |
+| risk-governance-analyst | Full risk map + management/governance/investors: "what could go wrong, who's at the helm" |
 | tech-ip-analyst | Tech stack / patents / R&D / moat: "is the tech barrier real and durable" |
 | signal-miner | Alternative data (hiring / patents / litigation / app / supply chain): "clues beyond the usual sources" |
 
@@ -101,9 +101,9 @@ No standard financials; multi-source patchwork + cross-validation. **Every data 
 > Private companies have limited conventional info; alt-data often beats news.
 
 - **Hiring** (LinkedIn/Boss/Indeed): scale/trend, structure (R&D/product/sales/data/international/compliance/IR — IR hiring = IPO signal; compliance = regulatory or IPO; JD tech stack = strategy).
-- **App/product** (App Store/七麦/SimilarWeb): rank, rating trend, downloads, update frequency, complaint themes, web traffic.
+- **App/product** (App Store / Sensor Tower / Qimai / SimilarWeb): rank, rating trend, downloads, update frequency, complaint themes, web traffic.
 - **Social sentiment** (Weibo/Zhihu/Xiaohongshu/X/Reddit): official engagement, organic discussion, KOL views, negative events, insider leaks.
-- **Business/legal** (天眼查/企查查): registry/paid-in/equity changes/subsidiaries (new = new biz; deregistered = contraction)/scope changes; litigation/arbitration/penalties/enforcement.
+- **Business/legal** (OpenCorporates / state SoS registries; Tianyancha / Qichacha for China): registry/paid-in/equity changes/subsidiaries (new = new biz; deregistered = contraction)/scope changes; litigation/arbitration/penalties/enforcement.
 - **Supply chain**: known suppliers (if listed, check their filings), procurement, partner evaluation.
 - **Digital footprint**: registered domains (new = new biz), subdomains (api/pay → architecture), trademarks (new brands).
 - **Industry exposure**: exec talks, awards, government/association interaction, media frequency/quality.

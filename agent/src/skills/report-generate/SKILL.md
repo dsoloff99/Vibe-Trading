@@ -127,8 +127,8 @@ Clear action recommendation, including direction, position size, and time horizo
 | Type | Format | Example |
 |------|------|------|
 | Percentage | `X.X%` | Return `12.5%` |
-| Large amount | `X,XXX.X亿` | Market cap `1,234.5亿` |
-| Small amount | `X.XX元` | Stock price `25.80元` |
+| Large amount | `X,XXX.X bn` (or `mn`) | Market cap `1,234.5 bn` |
+| Small amount | `X.XX` + currency | Stock price `25.80 CNY` |
 | Multiple | `X.Xx` | PE `20.5x` |
 | Date | `YYYY-MM-DD` | `2026-03-28` |
 | Time range | `YYYY.MM-YYYY.MM` | `2024.01-2025.03` |
@@ -170,16 +170,16 @@ recovered by 2023.06 to a new high of 2.10.
 
 ### Common Abbreviations
 
-| Abbreviation | Full Name | Chinese Meaning |
+| Abbreviation | Full Name | Meaning |
 |------|------|------|
-| YoY | Year over Year | 同比 |
-| QoQ | Quarter over Quarter | 环比 |
-| MoM | Month over Month | 月环比 |
-| TTM | Trailing Twelve Months | 滚动12个月 |
-| CAGR | Compound Annual Growth Rate | 复合增长率 |
-| ROE | Return on Equity | 净资产收益率 |
-| EPS | Earnings Per Share | 每股收益 |
-| FCF | Free Cash Flow | 自由现金流 |
+| YoY | Year over Year | vs. the same period a year earlier |
+| QoQ | Quarter over Quarter | vs. the immediately preceding quarter |
+| MoM | Month over Month | vs. the immediately preceding month |
+| TTM | Trailing Twelve Months | rolling 12-month window |
+| CAGR | Compound Annual Growth Rate | annualized compound growth |
+| ROE | Return on Equity | net profit / shareholders' equity |
+| EPS | Earnings Per Share | net profit per share |
+| FCF | Free Cash Flow | operating cash flow minus capex |
 
 ## Backtest Report Template
 

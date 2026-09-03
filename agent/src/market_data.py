@@ -52,6 +52,13 @@ _SOURCE_PATTERNS = [
     # the 4-letter /USDT crypto rule above.
     (re.compile(r"^[A-Z]{3}/[A-Z]{3}$", re.I), "mt5"),
     (re.compile(r"^[A-Z]{6}\.FX$", re.I), "mt5"),
+    # Bare 6-digit codes (600519, 000001) are A-shares by convention; keep
+    # them on the never-banned Tencent endpoint. Must precede the bare-ticker
+    # rule below only in spirit — the two cannot overlap.
+    (re.compile(r"^\d{6}$"), "tencent"),
+    # Bare US tickers (AAPL, MSFT, SPY, T). Must stay LAST so every suffixed
+    # form above wins first. Mirrors ``_market_hooks._MARKET_PATTERNS``.
+    (re.compile(r"^[A-Z]{1,5}$", re.I), "yahoo"),
 ]
 
 
@@ -60,7 +67,10 @@ def detect_source(code: str) -> str:
     for pattern, source in _SOURCE_PATTERNS:
         if pattern.match(code):
             return source
-    return "tushare"
+    # Unknown spellings default to the US chain head rather than a
+    # China-market loader, so an unrecognised Western ticker degrades through
+    # yahoo -> stooq -> yfinance instead of tencent -> mootdx -> tushare.
+    return "yahoo"
 
 
 

@@ -6,7 +6,7 @@ Two free, no-auth disclosure feeds are stitched into one envelope:
   for a mainland A-share: report title, issuing brokerage, analyst, publish
   date, the broker's rating label, and that broker's per-year EPS / PE
   forecasts. This is the primary feed and drives the ``reports`` block.
-* **THS** (同花顺, ``basic.10jqka.com.cn``) publishes a market *consensus* EPS
+* **THS** (Tonghuashun, ``basic.10jqka.com.cn``) publishes a market *consensus* EPS
   forecast (the mean of analyst estimates) per forward fiscal year. THS rejects
   the bare requests User-Agent, so the call carries a desktop UA and a Referer
   and routes through the frozen IP-throttled HTTP layer under its own ``ths``
@@ -64,7 +64,7 @@ class ResearchReportsTool(BaseTool):
         "research reports (title, brokerage, analyst, publish date, rating) with "
         "each broker's per-year EPS and PE forecasts from Eastmoney, plus the "
         "market consensus (mean) EPS forecast per forward fiscal year from THS "
-        "(同花顺). Markets: China A-shares only (.SH / .SZ / .BJ). "
+        "(Tonghuashun). Markets: China A-shares only (.SH / .SZ / .BJ). "
         "Reports are filtered to the [beginTime, endTime] window (both optional, "
         "defaulting to the trailing two years). "
         'Example: {"code": "600519.SH", "limit": 10, '

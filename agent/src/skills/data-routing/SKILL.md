@@ -49,14 +49,14 @@ is required only where listed (no key listed = free / no auth).
 | Data need | Tool | Market | Env key |
 |-----------|------|--------|---------|
 | OHLCV price bars | `get_market_data` | A-share / US / HK / Canada / crypto / futures / forex | per-source (see Source Overview) |
-| Fund flow (资金流向) | `get_fund_flow` | A-share, HK, US | — |
-| Dragon-tiger (龙虎榜) | `get_dragon_tiger` | A-share | — |
-| Northbound flow (北向资金) | `get_northbound_flow` | A-share | — |
-| Margin trading (融资融券) | `get_margin_trading` | A-share | — |
-| Block trades (大宗交易) | `get_block_trades` | A-share | — |
-| Shareholder count (股东户数) | `get_shareholder_count` | A-share | — |
-| Lockup expiry (限售解禁) | `get_lockup_expiry` | A-share | — |
-| Sector / board taxonomy (板块) | `get_sector_info` | A-share | — |
+| Fund flow | `get_fund_flow` | A-share, HK, US | — |
+| Dragon-tiger list | `get_dragon_tiger` | A-share | — |
+| Northbound flow | `get_northbound_flow` | A-share | — |
+| Margin trading | `get_margin_trading` | A-share | — |
+| Block trades | `get_block_trades` | A-share | — |
+| Shareholder count | `get_shareholder_count` | A-share | — |
+| Lockup expiry | `get_lockup_expiry` | A-share | — |
+| Sector / board taxonomy | `get_sector_info` | A-share | — |
 | Sell-side research reports | `get_research_reports` | A-share | — |
 | Stock news | `get_stock_news` | A-share, US, HK | — |
 | SEC filings (EDGAR) | `get_sec_filings` | US | — |
@@ -66,7 +66,7 @@ is required only where listed (no key listed = free / no auth).
 | Market screen | `screen_market` | A-share | — |
 | Symbol search | `search_symbol` | A-share, US, HK, Canada, crypto/index/FX | — |
 | Macro / FRED series | `get_macro_series` | Macro (US/global) | `FRED_API_KEY` |
-| iWenCai NL search (问财) | `iwencai_search` | A-share | `VIBE_TRADING_IWENCAI_KEY` |
+| iWenCai natural-language search | `iwencai_search` | A-share | `VIBE_TRADING_IWENCAI_KEY` |
 
 Notes:
 - `get_financial_statements` reads US statements from SEC EDGAR companyfacts

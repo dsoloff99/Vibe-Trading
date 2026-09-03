@@ -1,6 +1,6 @@
 ---
 name: ashare-pre-st-filter
-description: A 股 ST/*ST 风险预测框架 — 基于最新中报/三季报或业绩预告/快报，预测下一财年是否会因营收、利润、净资产、分红不达标而被风险警示，并将新浪监管处罚记录作为独立证据面纳入风险等级。仅适用于 A 股，不预测财务造假。
+description: China A-share ST / *ST risk-warning prediction framework — uses the latest interim or Q3 report or earnings pre-announcement to predict whether a stock will be flagged next fiscal year for revenue, profit, net-asset or dividend shortfalls, with Sina regulatory-penalty records as an independent evidence layer. A-shares only; does not predict accounting fraud.
 category: risk-analysis
 ---
 

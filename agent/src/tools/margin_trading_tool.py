@@ -1,7 +1,7 @@
-"""Read-only margin-trading (融资融券) balance tool backed by Eastmoney.
+"""Read-only margin-trading balance tool backed by Eastmoney.
 
 Eastmoney's public datacenter exposes the daily exchange-published
-margin-financing / securities-lending (融资融券) figures for individual A-share
+margin-financing / securities-lending figures for individual A-share
 stocks: outstanding financing balance, financing buy amount, securities-lending
 balance, and the combined RZRQ balance, one row per trading day. This tool reads
 those rows through the shared throttled Eastmoney client so the agent can answer
@@ -25,7 +25,7 @@ from src.tools import tushare_fallbacks
 logger = logging.getLogger(__name__)
 
 # Eastmoney datacenter report API. RPTA_WEB_RZRQ_GGMX is the per-stock daily
-# margin-trading detail report (个股明细), filterable by SCODE (bare code).
+# margin-trading detail report (per-stock detail), filterable by SCODE (bare code).
 _DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get"
 _REPORT_NAME = "RPTA_WEB_RZRQ_GGMX"
 
@@ -130,7 +130,7 @@ class MarginTradingTool(BaseTool):
 
     name = "get_margin_trading"
     description = (
-        "Fetch an A-share stock's daily margin-trading (融资融券) balances from "
+        "Fetch an A-share stock's daily margin-trading balances from "
         "Eastmoney's public datacenter: outstanding financing balance, financing "
         "buy amount, securities-lending balance, and combined RZRQ balance, one "
         "row per trading day (most recent first). Read-only, no credentials, "

@@ -212,7 +212,7 @@ class ChannelRuntime:
                     f"Schedule: {schedule.get('expression') or '-'} · "
                     f"{schedule.get('timezone') or 'UTC'}\n"
                     f"Delivery: {delivery.get('target_label') or 'in-app only'}\n"
-                    'Reply exactly "confirm" (确认) to commit, or "cancel" (取消) '
+                    'Reply exactly "confirm" to commit, or "cancel" '
                     "to discard."
                 )
             await self.bus.publish_outbound(

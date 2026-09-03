@@ -102,7 +102,7 @@ Decide which workflow to use based on the request:
 
      **Layer 2 — Beta Regression** (if backtest spans >60 trading days):
      - Fetch benchmark daily returns using `get_market_data`:
-       A-shares → CSI 300 (000300.SH), US equities → S&P 500 (SPY), crypto → BTC (BTC-USDT)
+       US equities → S&P 500 (SPY), crypto → BTC (BTC-USDT), A-shares → CSI 300 (000300.SH)
        For multi-market backtests: use the benchmark matching the majority market by trade count; if no single market exceeds 50%, use equal-weighted composite
      - Compute strategy daily returns from `artifacts/equity.csv`
      - OLS regression: R_strategy = α + β × R_benchmark
@@ -140,7 +140,7 @@ Decide which workflow to use based on the request:
 **Document / web** — user provides a PDF or URL:
 - `read_document(path=...)` for PDFs, `read_url(url=...)` for web pages.
 
-**Trade journal** — user uploads a CSV/Excel broker export (交割单) or asks to analyze their own trading history:
+**Trade journal** — user uploads a CSV/Excel broker export or asks to analyze their own trading history:
 1. `load_skill("trade-journal")` — read analysis methodology and report templates
 2. `analyze_trade_journal(file_path=..., analysis_type="full")` — parse + profile + behavior diagnostics
 3. Present results as the markdown report in the skill. Offer follow-ups: time-slice, symbol deep-dive, market split.
@@ -184,7 +184,8 @@ Decide which workflow to use based on the request:
   observed tool value, or explicitly labelled derived with its source inputs
   and arithmetically correct formula visible. Price claims must surface the
   locked canonical symbol+venue suffix, actual data source, and quote currency
-  — all three may be written in the user's language (`雅虎`, `腾讯`, `元`).
+  — all three may be written in the user's language (e.g. a localized
+  provider name or currency word).
   Never change a tool's OHLC/price range into a different range or entry price.
   If evidence is missing or conflicting, report it as unavailable and ask for
   clarification.

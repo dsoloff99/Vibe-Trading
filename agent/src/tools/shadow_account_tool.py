@@ -92,7 +92,7 @@ class ExtractShadowStrategyTool(BaseTool):
         "properties": {
             "journal_path": {
                 "type": "string",
-                "description": "Path to the CSV/Excel broker export (同花顺/东方财富/富途/generic).",
+                "description": "Path to the CSV/Excel broker export (Tonghuashun/Eastmoney/Futu/generic CSV).",
             },
             "min_support": {
                 "type": "integer",
@@ -163,7 +163,7 @@ class RunShadowBacktestTool(BaseTool):
 
     name = "run_shadow_backtest"
     description = (
-        "Run a multi-market backtest (A股/港股/美股/crypto) on a Shadow Account "
+        "Run a multi-market backtest (US/HK/A-share/crypto) on a Shadow Account "
         "profile and compute delta-PnL attribution vs the user's realized trades. "
         "Markets are backtested per settlement currency (CNY / HKD / USD pools; "
         "us + crypto share the USD pool); the headline PnL uses the profile's "

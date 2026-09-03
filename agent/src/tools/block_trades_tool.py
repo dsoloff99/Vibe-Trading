@@ -1,10 +1,10 @@
-"""Block-trade (大宗交易) lookup tool backed by the Eastmoney datacenter.
+"""Block-trade lookup tool backed by the Eastmoney datacenter.
 
 Eastmoney publishes every A-share block trade — negotiated off-book deals struck
 at a premium or discount to the close — through its free, no-auth datacenter
 report API (``RPT_DATA_BLOCKTRADE``). Each record carries the deal price and
 volume, the discount/premium versus that session's close, and the buyer/seller
-营业部 ("seats") that booked the trade. Block-trade flow is a watched signal for
+broker branches ("seats") that booked the trade. Block-trade flow is a watched signal for
 institutional accumulation or distribution, so this read-only tool surfaces the
 recent record list for a single A-share symbol.
 
@@ -172,14 +172,14 @@ def _extract_rows(payload: Any) -> list[dict[str, Any]]:
 
 
 class BlockTradesTool(BaseTool):
-    """Recent A-share block trades (大宗交易): price, premium, volume, seats."""
+    """Recent A-share block trades: price, premium, volume, seats."""
 
     name = "get_block_trades"
     description = (
-        "Fetch recent A-share block trades (大宗交易) for one symbol from the "
+        "Fetch recent A-share block trades for one symbol from the "
         "Eastmoney datacenter: per-deal price, volume, amount, the "
         "premium/discount versus that day's close, and the buyer/seller broker "
-        "seats (营业部). Markets: China A-share only (.SH/.SZ/.BJ). Read-only. "
+        "seats. Markets: China A-share only (.SH/.SZ/.BJ). Read-only. "
         'Example: get_block_trades(code="600519.SH", days=30).'
     )
     parameters = {

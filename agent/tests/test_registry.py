@@ -165,8 +165,8 @@ class TestFallbackChains:
             "tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "local",
         ]
         assert FALLBACK_CHAINS["us_equity"] == [
-            "yahoo", "stooq", "sina", "eastmoney", "yfinance", "tiingo", "fmp",
-            "finnhub", "alphavantage", "longbridge", "akshare", "local",
+            "yahoo", "stooq", "yfinance", "tiingo", "fmp", "finnhub",
+            "alphavantage", "longbridge", "sina", "eastmoney", "akshare", "local",
         ]
         assert FALLBACK_CHAINS["hk_equity"] == [
             "tencent", "eastmoney", "yahoo", "futu", "akshare", "yfinance", "tushare", "longbridge", "local",
@@ -192,7 +192,7 @@ class TestFallbackChains:
         assert FALLBACK_CHAINS["macro"] == ["akshare", "tushare", "local"]
         # mt5 heads the forex chain (terminal feed when attached), degrading to
         # the previous chain unchanged.
-        assert FALLBACK_CHAINS["forex"] == ["mt5", "akshare", "yfinance", "local"]
+        assert FALLBACK_CHAINS["forex"] == ["mt5", "yfinance", "akshare", "local"]
 
     def test_tickerall_is_explicit_only_never_a_fallback(self) -> None:
         """TickerAll is a valid explicit source but must NEVER join an automatic

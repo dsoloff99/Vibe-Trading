@@ -1,6 +1,6 @@
 ---
 name: pine-script
-description: Export backtest strategies to indicator/strategy code for major trading platforms — TradingView, 通达信, 同花顺, 东方财富, MT5.
+description: Export backtest strategies to indicator/strategy code for major trading platforms — TradingView, TDX (Tongdaxin), Tonghuashun, Eastmoney, MT5.
 category: tool
 ---
 
@@ -14,7 +14,7 @@ Supported platforms (always generate ALL):
 | Group | Platforms | Language |
 |-------|-----------|----------|
 | International Charts | TradingView | Pine Script v6 |
-| China Equities | 通达信 / 同花顺 / 东方财富 | TDX Formula |
+| China Equities | TDX (Tongdaxin) / Tonghuashun / Eastmoney | TDX Formula |
 | Forex / CFD | MetaTrader 5 | MQL5 |
 
 ## Workflow: Export from Backtest
@@ -46,8 +46,8 @@ The output file uses this structure (all platforms in one file):
 [Pine Script code here]
 
 ================================================================================
-  通达信 / 同花顺 / 东方财富 (TDX Formula)
-  Paste into: 功能 → 公式管理器 → 新建指标公式
+  TDX (Tongdaxin) / Tonghuashun / Eastmoney (TDX Formula)
+  Paste into: Function menu → Formula Manager → New Indicator Formula
 ================================================================================
 
 [TDX formula code here]
@@ -187,26 +187,26 @@ alertcondition(shortCondition, title="Short Signal", message="Short entry signal
 
 ---
 
-## 2. 通达信 / 同花顺 / 东方财富 — TDX Formula
+## 2. TDX (Tongdaxin) / Tonghuashun / Eastmoney — TDX Formula
 
 These platforms share 95%+ identical formula syntax. Write ONE version that works on all three.
 
 ### Template
 
 ```
-{Vibe-Trading 策略导出}
-{策略名称: XXX}
+{Vibe-Trading strategy export}
+{Strategy name: XXX}
 
-{——————— 参数 ———————}
+{——————— Parameters ———————}
 N:=14;
 M:=6;
 
-{——————— 指标计算 ———————}
+{——————— Indicator calculation ———————}
 RSI_VAL:=RSI(CLOSE,N);
 MA_FAST:=MA(CLOSE,5);
 MA_SLOW:=MA(CLOSE,20);
 
-{——————— 买卖信号 ———————}
+{——————— Buy/sell signals ———————}
 BUY:CROSS(MA_FAST,MA_SLOW) AND RSI_VAL<40,COLORRED;
 SELL:CROSS(MA_SLOW,MA_FAST) AND RSI_VAL>60,COLORGREEN;
 
@@ -255,12 +255,12 @@ DRAWTEXT(SELL,HIGH,'S'),COLORWHITE;
 
 ### Platform Differences
 
-| Feature | 通达信 | 同花顺 | 东方财富 |
+| Feature | TDX (Tongdaxin) | Tonghuashun | Eastmoney |
 |---------|--------|--------|----------|
 | MACD built-in | `MACD(12,26,9)` | `MACD(12,26,9)` | same |
 | Stochastic | `KDJ(N,M1,M2)` | same | same |
 | Custom color | `COLOR+RRGGBB` | `COLOR+RRGGBB` | limited |
-| Strategy backtest | 条件选股 only | 条件选股 only | 条件选股 only |
+| Strategy backtest | conditional stock screening only | conditional stock screening only | conditional stock screening only |
 
 For maximum compatibility, avoid platform-specific extensions. Stick to core functions.
 
@@ -350,7 +350,7 @@ int OnCalculate(const int rates_total,
 
 When generating code, map Vibe-Trading instrument codes appropriately:
 
-| Vibe-Trading | TradingView | 通达信/同花顺 | MT5 |
+| Vibe-Trading | TradingView | TDX/Tonghuashun | MT5 |
 |-------------|-------------|---------------|-----|
 | `000001.SZ` | `SZSE:000001` | `000001` | N/A |
 | `600519.SH` | `SSE:600519` | `600519` | N/A |

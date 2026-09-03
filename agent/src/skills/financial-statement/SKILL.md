@@ -1,262 +1,270 @@
 ---
 name: financial-statement
-description: 财报三表深度解读——三表勾稽关系、盈利质量(应计vs现金流)分析、杜邦分解、10+财务造假红旗指标
+description: Deep reading of the three financial statements (income statement, balance sheet, cash flow) — cross-statement reconciliation, earnings quality (accruals vs cash flow), DuPont decomposition, and 12 accounting red flags; use when a user asks to analyze a company's financials, earnings quality, or fraud risk.
 category: flow
 ---
 
-# 财报三表解读
+# Three-Statement Financial Analysis
 
-## 概述
+## Overview
 
-从三张报表（利润表、资产负债表、现金流量表）的勾稽关系出发，深度分析企业盈利质量，识别财务造假信号，用杜邦分析分解盈利驱动因子。
+Starting from the links between the three statements (income statement, balance sheet, cash flow statement), analyze earnings quality in depth, identify signs of accounting manipulation, and decompose the drivers of profitability with DuPont analysis.
 
-## 三表核心框架
+## Core Framework for the Three Statements
 
-### 利润表（赚了多少）
+### Income Statement (how much was earned)
 
 ```
-营业收入
- - 营业成本               → 毛利润（毛利率 = 毛利/营收）
- - 销售费用 + 管理费用 + 研发费用  → 核心利润
- + 投资收益 + 公允价值变动        → 营业利润
- + 营业外收支               → 利润总额
- - 所得税                 → 净利润
- - 少数股东损益              → 归母净利润
+Revenue
+ - Cost of goods sold                  -> Gross profit (gross margin = gross profit / revenue)
+ - SG&A + R&D                          -> Operating income (core profit)
+ + Interest & other income / (expense) -> Pre-tax income
+ + Non-operating / one-time items      -> Pre-tax income (adjusted view)
+ - Income tax                          -> Net income
+ - Noncontrolling interest             -> Net income attributable to common shareholders
 ```
 
-**关键比率**：
+**Key ratios**:
 
-| 比率 | 公式 | 健康范围 | 警示 |
+| Ratio | Formula | Healthy Range | Warning |
 |------|------|---------|------|
-| 毛利率 | 毛利/营收 | 行业差异大 | 连续3季下滑 |
-| 净利率 | 净利/营收 | >10%优秀 | <0%且无改善趋势 |
-| 期间费用率 | (销管研)/营收 | <30% | 逐年上升 |
-| 扣非/归母 | 扣非净利/归母净利 | >80% | <50%依赖非经常 |
+| Gross margin | Gross profit / revenue | Varies widely by industry | Declining 3 consecutive quarters |
+| Net margin | Net income / revenue | > 10% is excellent | < 0% with no improving trend |
+| Operating expense ratio | (SG&A + R&D) / revenue | < 30% | Rising year after year |
+| Core / reported net income | Net income ex one-time items / reported net income (GAAP vs non-GAAP gap) | > 80% | < 50% means reliance on non-recurring items |
 
-### 资产负债表（有什么家底）
+### Balance Sheet (what the company owns)
 
 ```
-资产 = 负债 + 所有者权益
+Assets = Liabilities + Shareholders' equity
 
-资产端重点:
-- 货币资金: 是否受限？存贷双高？
-- 应收账款: 增速是否超过营收？
-- 存货: 是否积压？跌价准备够不够？
-- 商誉: 并购溢价，减值风险
-- 在建工程: 是否长期不转固？
+Asset-side focus:
+- Cash: is any of it restricted? High cash AND high debt at the same time?
+- Accounts receivable: growing faster than revenue?
+- Inventory: piling up? Are write-down reserves adequate?
+- Goodwill: acquisition premiums, impairment risk
+- Construction in progress / capitalized projects: never transferred to fixed assets?
 
-负债端重点:
-- 有息负债: 短期借款+长期借款+应付债券
-- 应付账款: 对上游议价权
-- 预收/合同负债: 对下游议价权
+Liability-side focus:
+- Interest-bearing debt: short-term borrowings + long-term debt + bonds payable
+- Accounts payable: bargaining power over suppliers
+- Deferred revenue / contract liabilities: bargaining power over customers
 ```
 
-**关键比率**：
+**Key ratios**:
 
-| 比率 | 公式 | 健康范围 |
+| Ratio | Formula | Healthy Range |
 |------|------|---------|
-| 资产负债率 | 负债/资产 | 40-60%（非金融） |
-| 流动比率 | 流动资产/流动负债 | 1.5-2.5 |
-| 速动比率 | (流动资产-存货)/流动负债 | >1.0 |
-| 有息负债率 | 有息负债/总资产 | <30% |
+| Debt-to-assets | Total liabilities / total assets | 40-60% (non-financial) |
+| Current ratio | Current assets / current liabilities | 1.5-2.5 |
+| Quick ratio | (Current assets - inventory) / current liabilities | > 1.0 |
+| Interest-bearing debt ratio | Interest-bearing debt / total assets | < 30% |
 
-### 现金流量表（真正拿到多少现金）
+### Cash Flow Statement (how much cash was actually collected)
 
 ```
-经营活动现金流(CFO): 做生意赚的现金
-投资活动现金流(CFI): 买卖资产花的现金
-筹资活动现金流(CFF): 借钱/还钱/分红
+Cash flow from operations (CFO): cash earned by running the business
+Cash flow from investing (CFI): cash spent buying / selling assets
+Cash flow from financing (CFF): borrowing / repayment / dividends / buybacks
 
-黄金公式: 净利润 ≈ CFO（长期来看）
+Golden rule: net income ~ CFO (over the long run)
 ```
 
-**现金流质量矩阵**：
+**Cash flow quality matrix**:
 
-| CFO | CFI | CFF | 企业状态 |
+| CFO | CFI | CFF | Company State |
 |-----|-----|-----|---------|
-| + | - | - | 优秀（赚钱、投资、还债） |
-| + | - | + | 扩张（赚钱、投资、借钱加速） |
-| + | + | - | 稳健（赚钱、回收投资、还债） |
-| - | - | + | 危险（亏钱、还在投、靠借钱活） |
-| - | + | + | 困境（卖资产+借钱维持） |
-| - | + | - | 衰退（卖资产还债） |
+| + | - | - | Excellent (earning, investing, paying down debt / returning capital) |
+| + | - | + | Expanding (earning, investing, borrowing to accelerate) |
+| + | + | - | Conservative (earning, harvesting investments, repaying debt) |
+| - | - | + | Dangerous (losing money, still investing, surviving on borrowed money) |
+| - | + | + | Distressed (selling assets and borrowing to stay afloat) |
+| - | + | - | Declining (selling assets to repay debt) |
 
-## 三表勾稽关系
+## Links Between the Three Statements
 
-### 核心勾稽
+### Core Reconciliations
 
 ```
-1. 利润表 → 资产负债表
-   净利润 → 留存收益（未分配利润增加）
-   应收增加 = 收入 - 实际收款
-   存货增加 = 采购 - 已售成本
+1. Income statement -> balance sheet
+   Net income -> retained earnings (increase)
+   Increase in receivables = revenue - cash actually collected
+   Increase in inventory = purchases - cost of goods sold
 
-2. 利润表 → 现金流量表
-   净利润 + 折旧 - 营运资本增加 ≈ 经营现金流
-   如果差异大 → 盈利质量存疑
+2. Income statement -> cash flow statement
+   Net income + depreciation - increase in working capital ~ operating cash flow
+   Large gap -> earnings quality is questionable
 
-3. 资产负债表 → 现金流量表
-   期末现金 = 期初现金 + CFO + CFI + CFF
-   货币资金变动 = 三个现金流之和
+3. Balance sheet -> cash flow statement
+   Ending cash = beginning cash + CFO + CFI + CFF
+   Change in cash = sum of the three cash flows
 ```
 
-### 勾稽验证公式
+### Reconciliation Check Formulas
 
 ```python
-# 验证盈利质量
+# Check earnings quality
 accrual_ratio = (net_income - cfo) / total_assets
-# accrual_ratio > 10% → 应计利润占比高，盈利质量差
+# accrual_ratio > 10% -> large accrual component, poor earnings quality
 
-# 验证收入质量
+# Check revenue quality
 receivable_growth = accounts_receivable.pct_change()
 revenue_growth = revenue.pct_change()
-# receivable_growth > revenue_growth → 收入质量恶化
+# receivable_growth > revenue_growth -> revenue quality deteriorating
 
-# 验证资产负债表与现金流一致性
+# Check balance sheet vs cash flow consistency
 cash_change = cash_end - cash_begin
 cf_total = cfo + cfi + cff
-# abs(cash_change - cf_total) > 1 → 数据有问题
+# abs(cash_change - cf_total) > 1 -> data problem
 ```
 
-## 盈利质量分析
+## Earnings Quality Analysis
 
-### 应计 vs 现金流
+### Accruals vs Cash Flow
 
 ```
-高质量盈利:
-- CFO / 净利润 > 1.0（现金利润大于纸面利润）
-- 应收账款增速 < 营收增速
-- 经营现金流持续为正
+High-quality earnings:
+- CFO / net income > 1.0 (cash profit exceeds paper profit)
+- Receivables growth < revenue growth
+- Operating cash flow consistently positive
 
-低质量盈利:
-- CFO / 净利润 < 0.5（大量利润没变成现金）
-- 应收/营收比例持续上升
-- 依赖一次性收益（投资收益、资产处置）
+Low-quality earnings:
+- CFO / net income < 0.5 (much of the profit never became cash)
+- Receivables / revenue ratio keeps rising
+- Reliance on one-time gains (investment income, asset disposals)
 ```
 
-### 盈利质量评分卡
+### Earnings Quality Scorecard
 
-| 指标 | 优秀(3分) | 一般(2分) | 差(1分) | 权重 |
+| Metric | Excellent (3) | Average (2) | Poor (1) | Weight |
 |------|----------|----------|---------|------|
-| CFO/净利润 | >1.2 | 0.8-1.2 | <0.8 | 25% |
-| 应收增速vs营收 | 应收增速更慢 | 同步 | 应收更快 | 20% |
-| 扣非/归母 | >90% | 70-90% | <70% | 20% |
-| 经营现金流趋势 | 连续增长 | 波动 | 下降 | 20% |
-| 存货周转 | 加快 | 稳定 | 放慢 | 15% |
+| CFO / net income | > 1.2 | 0.8-1.2 | < 0.8 | 25% |
+| Receivables growth vs revenue | Receivables slower | In line | Receivables faster | 20% |
+| Core / reported net income | > 90% | 70-90% | < 70% | 20% |
+| Operating cash flow trend | Rising consistently | Volatile | Falling | 20% |
+| Inventory turnover | Accelerating | Stable | Slowing | 15% |
 
-评分 ≥ 2.5 = 盈利质量优秀
-评分 1.5-2.5 = 需要关注
-评分 < 1.5 = 盈利质量差，建议回避
+Score >= 2.5 = excellent earnings quality
+Score 1.5-2.5 = needs attention
+Score < 1.5 = poor earnings quality, recommend avoiding
 
-## 财务造假红旗指标
+## Accounting Red Flags
 
-### 12个红旗信号
+### 12 Red-Flag Signals
 
-| # | 红旗 | 检测方法 | 严重度 |
+| # | Red Flag | Detection Method | Severity |
 |---|------|---------|--------|
-| 1 | 存贷双高 | 货币资金高 + 有息负债高（同时>营收30%） | 高 |
-| 2 | 应收暴增 | 应收增速 > 营收增速 × 1.5，持续2季+ | 高 |
-| 3 | 存货异常 | 存货/营收比例突然上升>50% | 高 |
-| 4 | 经营现金流为负 | CFO连续2年为负但净利润为正 | 高 |
-| 5 | 关联交易占比高 | 关联交易/营收 > 30% | 高 |
-| 6 | 频繁更换审计师 | 3年内换2次审计师 | 中 |
-| 7 | 在建工程不转固 | 在建工程/固定资产 > 50%，持续3年+ | 中 |
-| 8 | 预付账款异常 | 预付/营收比例突然上升 | 中 |
-| 9 | 少数股东损益异常 | 少数股东损益/净利润比例波动大 | 中 |
-| 10 | 审计意见 | 非标准无保留意见（保留/否定/无法表示） | 高 |
-| 11 | 资本化率过高 | 研发资本化/研发总额 > 50% | 中 |
-| 12 | 商誉占比高 | 商誉/净资产 > 30%，且标的业绩不达标 | 中 |
+| 1 | High cash and high debt simultaneously | Large cash balance + large interest-bearing debt (both > 30% of revenue) | High |
+| 2 | Receivables surge | Receivables growth > 1.5x revenue growth for 2+ consecutive quarters | High |
+| 3 | Inventory anomaly | Inventory / revenue ratio suddenly rises > 50% | High |
+| 4 | Negative operating cash flow | CFO negative 2 consecutive years while net income is positive | High |
+| 5 | Heavy related-party transactions | Related-party transactions / revenue > 30% | High |
+| 6 | Frequent auditor changes | Auditor changed twice within 3 years | Medium |
+| 7 | Capitalized projects never completed | Construction in progress / fixed assets > 50% for 3+ years | Medium |
+| 8 | Prepayment anomaly | Prepayments / revenue ratio suddenly rises | Medium |
+| 9 | Noncontrolling interest anomaly | Noncontrolling interest / net income ratio swings widely | Medium |
+| 10 | Audit opinion | Non-unqualified opinion (qualified / adverse / disclaimer), going-concern paragraph, or material weakness in internal controls (SOX 404) | High |
+| 11 | Excessive capitalization | Capitalized development / software costs / total R&D > 50% | Medium |
+| 12 | Goodwill concentration | Goodwill / equity > 30% and acquired businesses missing targets | Medium |
 
-### 综合造假概率评估
-
-```
-红旗数量    造假概率    建议
-0-1个       低          正常投资
-2-3个       中          深入调查，谨慎投资
-4-5个       高          建议回避
-6+个        极高        强烈回避
-```
-
-## 杜邦分析
-
-### 三级分解
+### Overall Manipulation Probability
 
 ```
-ROE = 净利率 × 总资产周转率 × 权益乘数
-
-ROE = (净利润/营收) × (营收/总资产) × (总资产/净资产)
-     盈利能力        运营效率        杠杆水平
+Red flags    Manipulation probability    Recommendation
+0-1          Low                         Invest normally
+2-3          Medium                      Investigate further, invest cautiously
+4-5          High                        Recommend avoiding
+6+           Very high                   Strongly avoid
 ```
 
-### 五级分解
+## DuPont Analysis
+
+### Three-Factor Decomposition
 
 ```
-ROE = 税务负担 × 利息负担 × 营业利润率 × 资产周转率 × 权益乘数
-    = (净利/税前利润) × (税前利润/EBIT) × (EBIT/营收) × (营收/总资产) × (总资产/净资产)
+ROE = net margin x asset turnover x equity multiplier
+
+ROE = (net income / revenue) x (revenue / total assets) x (total assets / equity)
+      profitability          operating efficiency       leverage
 ```
 
-### 杜邦分析模板
+### Five-Factor Decomposition
+
+```
+ROE = tax burden x interest burden x operating margin x asset turnover x equity multiplier
+    = (net income / pre-tax income) x (pre-tax income / EBIT) x (EBIT / revenue) x (revenue / total assets) x (total assets / equity)
+```
+
+### DuPont Analysis Template
 
 ```markdown
-### 杜邦分析: [公司名]
+### DuPont Analysis: [Company]
 
-| 指标 | 2024 | 2025 | 变化 | 驱动判断 |
+| Metric | 2024 | 2025 | Change | Driver Assessment |
 |------|------|------|------|---------|
-| ROE | 15.2% | 17.8% | +2.6% | ↑ |
-| 净利率 | 8.5% | 9.2% | +0.7% | 盈利改善 ✓ |
-| 资产周转率 | 0.85 | 0.88 | +0.03 | 效率提升 ✓ |
-| 权益乘数 | 2.10 | 2.20 | +0.10 | 杠杆上升 ⚠️ |
+| ROE | 15.2% | 17.8% | +2.6% | Up |
+| Net margin | 8.5% | 9.2% | +0.7% | Profitability improving (ok) |
+| Asset turnover | 0.85 | 0.88 | +0.03 | Efficiency improving (ok) |
+| Equity multiplier | 2.10 | 2.20 | +0.10 | Leverage rising (watch) |
 
-结论: ROE提升主要由盈利能力改善驱动，杠杆小幅上升需关注
+Conclusion: the ROE improvement is driven mainly by better profitability; the modest rise in leverage needs monitoring
 ```
 
-### 行业ROE对比
+### ROE Comparison by Industry
 
-| 行业 | 典型ROE | 驱动类型 |
+| Industry | Typical ROE | Driver Type |
 |------|---------|---------|
-| 白酒 | 25-30% | 高净利率驱动（毛利率>90%） |
-| 零售 | 8-15% | 高周转驱动（薄利多销） |
-| 银行 | 10-14% | 高杠杆驱动（权益乘数>10x） |
-| 科技 | 12-20% | 高净利率+中等周转 |
-| 地产 | 5-10% | 高杠杆但在去杠杆 |
+| Spirits / tobacco / premium consumer brands | 25-30%+ | High net margin (gross margin > 60-90%) |
+| Retail (e.g. WMT, COST) | 8-15% | High turnover (thin margins, high volume) |
+| Banks | 10-14% | High leverage (equity multiplier > 10x) |
+| Technology (e.g. AAPL, MSFT) | 12-20%+ | High net margin + moderate turnover (buybacks inflate ROE) |
+| Real estate / homebuilders | 5-10% | High leverage, but deleveraging |
 
-## 输出格式
+## Output Format
 
 ```markdown
-## 财务分析: [公司名/代码]
+## Financial Analysis: [Company / Ticker]
 
-### 三表概要
-| 指标 | 2023A | 2024A | 2025E | 趋势 |
+### Three-Statement Summary
+| Metric | 2023A | 2024A | 2025E | Trend |
 |------|-------|-------|-------|------|
-| 营收(亿) | ... | ... | ... | ... |
-| 净利润(亿) | ... | ... | ... | ... |
-| CFO(亿) | ... | ... | ... | ... |
-| 资产负债率 | ... | ... | ... | ... |
+| Revenue ($M) | ... | ... | ... | ... |
+| Net income ($M) | ... | ... | ... | ... |
+| CFO ($M) | ... | ... | ... | ... |
+| Debt-to-assets | ... | ... | ... | ... |
 
-### 盈利质量评分
-| 指标 | 得分 | 说明 |
+### Earnings Quality Score
+| Metric | Score | Notes |
 |------|------|------|
-| CFO/净利润 | 3/3 | 1.25, 现金回收优秀 |
+| CFO / net income | 3/3 | 1.25, excellent cash conversion |
 | ... | ... | ... |
-| **综合** | **2.7/3** | **盈利质量优秀** |
+| **Overall** | **2.7/3** | **Excellent earnings quality** |
 
-### 杜邦分解
-[杜邦分析表格]
+### DuPont Decomposition
+[DuPont analysis table]
 
-### 红旗检查
-- [x] 存贷双高 → 否，货币资金合理
-- [x] 应收异常 → 否，增速低于营收
-- [!] 商誉占比 → 22%，接近警戒线，需关注
+### Red-Flag Check
+- [x] High cash and high debt -> No, cash balance is reasonable
+- [x] Receivables anomaly -> No, growing slower than revenue
+- [!] Goodwill concentration -> 22%, near the warning line, monitor
 
-### 结论
+### Conclusion
 ...
 ```
 
-## 注意事项
+## Points to Watch
 
-1. **财报会计准则差异**：A股用中国会计准则，港股/美股用IFRS/US GAAP，比较时注意调整
-2. **季度数据看同比非环比**：季节性因素大（如消费Q4旺季），环比波动不代表趋势
-3. **银行/保险特殊**：三表结构与一般企业完全不同，不适用传统勾稽分析
-4. **重资产 vs 轻资产**：资产周转率跨行业不可比，同行业内比较才有意义
-5. **并表范围变化**：新收购/处置子公司导致同比不可比，需看可比口径
-6. **数据来源**：tushare提供A股财报数据，extra_fields中可获取pe/pb/roe等指标
+1. **Accounting-standard differences**: US filers report under US GAAP, most non-US companies under IFRS, and A-shares under Chinese GAAP; adjust before comparing (e.g. lease treatment, R&D capitalization, revenue recognition)
+2. **Compare quarters year-over-year, not sequentially**: seasonality is strong (e.g. holiday-quarter retail), so quarter-over-quarter swings do not indicate a trend
+3. **Banks and insurers are special**: their statements are structured completely differently and the standard reconciliation analysis does not apply
+4. **Asset-heavy vs asset-light**: asset turnover is not comparable across industries; only peer comparisons are meaningful
+5. **Changes in consolidation scope**: newly acquired or divested subsidiaries make year-over-year figures non-comparable; use like-for-like data
+6. **Data sources**: `get_financial_statements` returns statement data for US and A-share tickers; SEC 10-K / 10-Q filings are available through the `edgar-sec-filings` skill; valuation fields such as pe / pb / roe come from `get_fundamentals`
+
+## China market notes
+
+- **Chinese GAAP income statement ordering**: investment income and fair-value changes sit inside operating profit, followed by non-operating income/expense to reach total profit; "core profit" (revenue - COGS - taxes and surcharges - selling, G&A and R&D expenses) is the standard operating measure
+- **Attributable and recurring earnings**: A-share disclosures separate net income attributable to the parent (guimu) from net income after deducting non-recurring items (koufei); the koufei / guimu ratio is the A-share version of the core / reported ratio in the tables above
+- **"High cash, high debt" cases**: this red flag became prominent after A-share frauds in which reported cash did not exist (e.g. Kangmei Pharmaceutical, 2019); check restricted cash and bank confirmations
+- **Audit opinions**: A-share auditors issue standard unqualified, unqualified with emphasis of matter, qualified, adverse, or disclaimer opinions; anything other than standard unqualified is a high-severity flag, and Hong Kong filers follow IFRS / HKFRS
+- **Data**: Tushare provides A-share statement data; pe / pb / roe are available via extra_fields; use exchange-suffixed codes such as 600519.SH

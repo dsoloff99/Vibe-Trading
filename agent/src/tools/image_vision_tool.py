@@ -62,7 +62,7 @@ class AnalyzeImageTool(BaseTool):
         "seeing the image. "
         "Supported: jpg/png/gif/bmp/webp under the allowed file roots. "
         'Example: {"path": "~/.vibe-trading/uploads/weixin/abc.jpg", '
-        '"question": "解读这张K线图的走势"}.'
+        '"question": "Interpret the trend on this candlestick chart"}.'
     )
     parameters = {
         "type": "object",

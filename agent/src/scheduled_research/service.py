@@ -107,7 +107,7 @@ def _origin_target(session_id: str | None) -> tuple[str, str, str | None, str]:
     target = config.get("channel_chat_id")
     if not isinstance(channel, str) or not isinstance(target, str):
         raise ValueError("the originating session is not an IM conversation")
-    return channel, target, None, "当前会话"
+    return channel, target, None, "current session"
 
 
 def build_job_from_draft(

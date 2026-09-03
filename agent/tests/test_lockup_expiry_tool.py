@@ -53,7 +53,7 @@ class TestToolContract:
 
     def test_description_self_contained(self) -> None:
         desc = LockupExpiryTool().description
-        assert "解禁" in desc
+        assert "lockup-expiry" in desc
         assert "Example" in desc
 
 

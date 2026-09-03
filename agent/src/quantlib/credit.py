@@ -76,9 +76,9 @@ ALTMAN_MODELS: Mapping[str, AltmanModelSpec] = {
 
 #: Chinese labels for the three Z-Score zones, as printed in the skill.
 ZONE_LABELS_ZH: Mapping[str, str] = {
-    "safe": "安全区（低违约风险）",
-    "grey": "灰色区（需深入分析）",
-    "distress": "危险区（高违约风险）",
+    "safe": "Safe zone (low default risk)",
+    "grey": "Grey zone (needs deeper analysis)",
+    "distress": "Distress zone (high default risk)",
 }
 
 
@@ -90,7 +90,7 @@ class AltmanZScore:
         z_score: The composite score.
         model: Which variant produced it; a key of :data:`ALTMAN_MODELS`.
         zone: ``"safe"``, ``"grey"`` or ``"distress"``.
-        label_zh: The Chinese zone label from :data:`ZONE_LABELS_ZH`.
+        label_zh: Human-readable zone label from :data:`ZONE_LABELS_ZH` (English; the field name is kept for API compatibility).
         components: The ``X1``..``X5`` ratios. ``x5`` is ``None`` for variants
             that do not use it.
         safe_threshold: Cut-off above which the zone is ``"safe"``.

@@ -61,7 +61,7 @@ Plus `00-series-overview.md` as an index (unpublished).
 ### "Pseudo-precision" traps to watch for before writing
 
 1. **Probability-weighted expected value**: `30% × A + 50% × B + 20% × C = expected +X%` is almost always garbage — the probabilities are pure subjective, giving readers false precision. **List scenarios + triggers + direction only; do not compute a weighted expectation.**
-2. **Third-party MAU/share estimates**: QuestMobile / 七麦 / CBNData differ hugely (2-3× at the same point). **Use only the two most-credible as anchors; describe the rest qualitatively.**
+2. **Third-party MAU/share estimates**: Sensor Tower / Similarweb / QuestMobile / Qimai differ hugely (2-3× at the same point). **Use only the two most-credible as anchors; describe the rest qualitatively.**
 3. **Linear extrapolation of historical growth**: `2025 +33% × 5y CAGR → 2030 X` is financial illiteracy. **Use scenario assumptions + high/low ranges; never a promise.**
 4. **Undisclosed shareholding**: unlisted-company stakes are never publicly disclosed. **Give a range, mark "unknowable".**
 5. **Strong attribution**: "competitor failed because of X." List multiple causes; **this article does no single attribution.**

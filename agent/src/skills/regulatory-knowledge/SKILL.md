@@ -1,299 +1,368 @@
 ---
 name: regulatory-knowledge
-description: 金融监管知识库：A股涨跌停/ST退市新规/融券、港股T+0/做空机制、美股PDT/熔断、加密监管政策、跨境税务基础
+description: Reference for trading rules and regulation across US, Hong Kong, China A-share and crypto markets (PDT rule, circuit breakers, T+1 settlement, wash-sale rule, Reg T margin, SEC/FINRA, IRS capital gains, price limits, short-selling, stamp duties); use it when implementing backtest constraints, checking a strategy for compliance, or estimating trading costs and tax drag.
 category: tool
 ---
 
-# 金融监管知识库
+# Market Regulation Knowledge Base
 
-## 概述
+## Overview
 
-量化交易必须理解的各市场监管规则。错误的交易规则假设会导致回测失真（如A股回测不考虑涨跌停限制）、实盘违规（如美股PDT限制）或税务损失。
+Trading rules every quantitative trader must understand, market by market. Wrong assumptions about trading rules produce distorted backtests (e.g. ignoring A-share price limits), live-trading violations (e.g. tripping the US PDT rule), or avoidable tax losses (e.g. wash sales).
 
-适用场景：
-- 回测引擎中正确实现交易规则约束
-- 跨市场策略的规则差异处理
-- 合规风控参数设置
-- 税务影响纳入策略收益计算
+Use cases:
+- Implementing trading-rule constraints correctly in a backtest engine
+- Handling rule differences in cross-market strategies
+- Setting compliance and risk-control parameters
+- Folding tax impact into strategy return calculations
 
-## 核心概念
+## Core Concepts
 
-### A股交易规则
+### US Trading Rules
 
-**涨跌停制度**：
-| 板块 | 涨跌停 | 新股首日 | ST涨跌停 |
+**Trading hours (Eastern Time)**:
+```
+Regular session: 9:30-16:00 ET
+Pre-market: 4:00-9:30 ET (most retail brokers open access from 7:00 or 8:00)
+After-hours: 16:00-20:00 ET
+Regulators: SEC (markets, issuers, advisers), FINRA (broker-dealers, margin and PDT rules),
+            CFTC (futures and most crypto derivatives)
+
+Backtest impact:
+  - Extended-hours volume is thin and spreads are wide; do not fill at pre/after-hours prints
+  - Daily bars use the 9:30 opening auction and the 16:00 closing auction prints
+```
+
+**PDT rule (Pattern Day Trader, FINRA Rule 4210)**:
+```
+Trigger: >= 4 day trades (open and close the same day) within 5 business days in a margin account,
+         when those day trades exceed 6% of total trades in that window
+Once flagged: the account must hold >= $25,000 equity to keep day trading
+Below $25,000: 90-day restriction to closing-only trades (or until equity is restored)
+
+Ways to stay compliant:
+  - Use a cash account (no PDT rule, but only settled funds can be reused; free-riding rules apply)
+  - Keep account equity > $25,000
+  - Keep day-trade frequency < 4 per rolling 5 business days
+```
+
+**Settlement (T+1)**:
+```
+US equities, ETFs and corporate bonds settle T+1 (since May 28, 2024); listed options already settled T+1
+Margin account: buy and sell the same day on margin (each round trip counts toward PDT)
+Cash account: sale proceeds can fund a new purchase immediately, but selling that new position
+              before the original sale settles is a "good faith violation";
+              3 violations in 12 months -> 90-day settled-cash-only restriction
+
+Backtest impact: T+1 affects cash-account capital recycling, not signal timing
+```
+
+**Reg T margin (Federal Reserve Regulation T)**:
+```
+Initial margin: 50% (max 2x leverage on long equity purchases)
+Maintenance margin: 25% FINRA minimum (most brokers require 30-40%, more on volatile names)
+Below maintenance: margin call -> deposit funds or the broker liquidates positions
+Short sales: 150% of proceeds must be held (100% proceeds + 50% initial margin)
+Portfolio margin: risk-based, up to about 6x, requires roughly $100,000-125,000 equity and approval
+
+Backtest impact:
+  - Cap gross exposure at 2x for a Reg T account; charge margin interest (broker rate ~ Fed funds + 1-6%)
+  - Model forced liquidation at the maintenance threshold, not the initial threshold
+```
+
+**Wash-sale rule (IRS Section 1091)**:
+```
+Selling a security at a loss and buying a "substantially identical" security within 30 days
+before or after the sale -> the loss is disallowed and added to the cost basis of the
+replacement shares. Applies across all of your accounts (including IRAs and a spouse's accounts).
+
+Backtest impact:
+  - High-turnover strategies that re-enter the same ticker within 30 days lose the current-year
+    tax benefit of their losses (deferred, not eliminated)
+  - Mean-reversion strategies on the same names are most exposed; track a 61-day window per symbol
+```
+
+**Circuit breakers**:
+```
+Market-wide (S&P 500 vs prior close):
+  Level 1: -7%  -> 15-minute halt (not triggered after 15:25 ET)
+  Level 2: -13% -> 15-minute halt (not triggered after 15:25 ET)
+  Level 3: -20% -> trading halted for the rest of the day
+
+Single-stock LULD (Limit Up-Limit Down):
+  Price moves outside +/-5% (Tier 1: S&P 500 / Russell 1000 / active ETPs) or +/-10% (Tier 2)
+  of a 5-minute reference price -> 5-minute halt; bands double in the last 25 minutes
+
+Reg SHO (short-selling rules):
+  - Locate requirement: must confirm shares can be borrowed before shorting
+  - Close-out: fails to deliver must be closed out (T+4 for most, T+6 for market makers)
+  - Short Sale Circuit Breaker (Rule 201): stock down >10% from prior close -> uptick-only
+    shorting for the rest of that day and the following day
+
+Backtest impact:
+  - No daily price limits in US equities, but LULD halts can delay stop-loss fills
+  - Same-day round trips are allowed in a margin account -> intraday strategies are feasible
+  - Model extended-hours fills with extra slippage or skip them entirely
+```
+
+### Hong Kong Trading Rules
+
+```
+Trading hours (HKT):
+  Pre-opening auction: 9:00-9:30
+  Continuous trading: 9:30-12:00, 13:00-16:00
+  Closing auction: 16:00-16:10
+
+Key differences (vs US):
+  ✓ T+0 trading (buy and sell the same day; no PDT rule)
+  ✓ No daily price limits (a single stock can move 50%+ in a day)
+  ✓ Established short-selling framework (borrow cost about 1-3%/year on large caps)
+  ✓ Grey-market trading (the evening before an IPO lists)
+  ✗ Lower liquidity (daily turnover roughly 1/5 to 1/10 of the A-share market)
+  ✗ Many penny stocks (large numbers of names trading below HK$0.10)
+
+Short-selling rules:
+  - Only designated securities can be shorted, and only at or above the best ask (an uptick-rule variant)
+  - Shares must be borrowed before shorting (naked shorting is prohibited)
+  - Short positions must be reported when they reach the 0.02% threshold
+
+Settlement:
+  T+2 settlement (shares withdrawable on T+2)
+  Trading is T+0 (under the pre-funding model)
+
+Backtest impact:
+  - No price limits -> extreme moves are common; stop-losses matter more
+  - T+0 -> intraday strategies are feasible
+  - Low liquidity -> large slippage on small caps; include market-impact cost
+```
+
+### China A-share Trading Rules
+
+**Daily price limits**:
+| Board | Daily limit | IPO first day | ST stocks |
 |------|--------|----------|----------|
-| 主板(沪深) | ±10% | +44%/-36% | ±5% |
-| 创业板 | ±20% | 前5日无限制 | ±20% |
-| 科创板 | ±20% | 前5日无限制 | ±20% |
-| 北交所 | ±30% | 前5日无限制 | ±30% |
+| Main board (SSE/SZSE) | ±10% | +44%/-36% | ±5% |
+| ChiNext | ±20% | No limit for first 5 days | ±20% |
+| STAR Market | ±20% | No limit for first 5 days | ±20% |
+| Beijing Stock Exchange | ±30% | No limit for first 5 days | ±30% |
 
 ```
-回测影响:
-  涨停时买入可能无法成交（封板）→ 信号延迟
-  跌停时卖出可能无法成交（封板）→ 止损失效
+Backtest impact:
+  Buying at limit-up may not fill (order queue locked) -> signal delayed
+  Selling at limit-down may not fill (order queue locked) -> stop-loss fails
 
-回测实现:
+Backtest implementation:
   if daily_return >= limit_up:
-      buy_signal无法执行, 推迟到次日
+      buy_signal cannot execute; defer to the next day
   if daily_return <= limit_down:
-      sell_signal可能无法执行, 用跌停价模拟成交
+      sell_signal may not execute; simulate the fill at the limit-down price
 ```
 
-**T+1制度**：
+**T+1 rule**:
 ```
-A股: T日买入 → T+1日才能卖出
-回测影响: 信号在T日产生 → T+1日开盘执行买入 → T+2日最早可卖出
-常见错误: 回测中T日信号T日就平仓 → 虚增收益
+A-shares: bought on day T -> can only be sold on T+1
+Backtest impact: signal on T -> buy at the T+1 open -> earliest sale on T+2
+Common error: closing a T-day signal on day T in the backtest -> inflated returns
 
-例外:
-  - 融券做空: 可T+0(融券卖出当日买券还券)
-  - ETF套利: 一级市场申赎可实现T+0变相交易
-  - 可转债: 实行T+0交易
-```
-
-**融资融券/转融通**：
-```
-融资(杠杆做多):
-  保证金比例: ≥100% (即最大杠杆2倍)
-  维持担保比例: ≥130% (低于则追保; <110%强平)
-  标的范围: 约1600只(流动性好的主板/创业板股票)
-
-融券(做空):
-  券源: 证券公司自有+转融通借入
-  费率: 年化8-10%(远高于美股的1-2%)
-  限制: 2023年后限制融券T+0, 券源大幅收紧
-
-回测影响:
-  做空策略在A股成本极高, 需扣除8-10%/年的融券费用
-  实际可融券标的 < 理论标的 (券源有限)
+Exceptions:
+  - Securities-lending short sales: effectively T+0 (sell borrowed shares, buy back the same day)
+  - ETF arbitrage: primary-market creation/redemption allows de facto T+0
+  - Convertible bonds: trade T+0
 ```
 
-**集合竞价与连续竞价**：
+**Margin financing / securities lending**:
 ```
-早盘集合竞价: 9:15-9:25 (9:15-9:20可撤单, 9:20-9:25不可撤单)
-  9:25 产生开盘价
-连续竞价: 9:30-11:30, 13:00-14:57
-尾盘集合竞价: 14:57-15:00 (不可撤单)
+Margin buying (leveraged long):
+  Margin ratio: >= 100% (i.e. max 2x leverage)
+  Maintenance ratio: >= 130% (margin call below; forced liquidation below 110%)
+  Eligible universe: about 1,600 liquid main-board / ChiNext names
 
-回测影响:
-  - 日线回测默认用T+1开盘价成交
-  - 尾盘3分钟集合竞价: 大单集中, VWAP策略需注意
-  - 集合竞价期间的限价单可能影响开盘价
-```
+Securities lending (short):
+  Sources: broker inventory + refinancing (China Securities Finance)
+  Cost: 8-10%/year (far above the 1-2% typical in the US)
+  Restrictions: T+0 short sales restricted since 2023; borrowable supply tightened sharply
 
-**大宗交易**：
-```
-时间: 15:00-15:30 (收盘后)
-折价: 通常折价3-8% (相对收盘价)
-限制: 买入后6个月内不能在二级市场卖出(大股东减持用)
-
-信号意义:
-  大宗交易频繁 + 折价大 → 可能有减持需求(利空)
-  大宗交易后6个月解禁 → 关注解禁日卖压
+Backtest impact:
+  Shorting A-shares is very expensive; deduct 8-10%/year of borrow cost
+  Actual borrowable names < theoretical universe (limited supply)
 ```
 
-### 港股交易规则
-
+**Call auction and continuous trading**:
 ```
-交易时间:
-  早盘竞价: 9:00-9:30
-  连续交易: 9:30-12:00, 13:00-16:00
-  收市竞价: 16:00-16:10
+Opening call auction: 9:15-9:25 (orders cancelable 9:15-9:20, not cancelable 9:20-9:25)
+  9:25 sets the opening price
+Continuous trading: 9:30-11:30, 13:00-14:57
+Closing call auction: 14:57-15:00 (no cancellations)
 
-核心差异(vs A股):
-  ✓ T+0交易 (当日买当日可卖)
-  ✓ 无涨跌停限制 (个股单日可涨跌50%+)
-  ✓ 做空机制完善 (融券成本低, 约1-3%/年)
-  ✓ 暗盘交易 (IPO上市前一晚的灰市交易)
-  ✗ 流动性差 (日成交额仅A股的1/10-1/5)
-  ✗ 仙股多 (大量股价<0.1港元的小票)
-
-做空规则:
-  - 只能以不低于最佳卖盘价做空 (uptick rule变体)
-  - 需先借入股份才能做空 (naked short prohibited)
-  - 做空头寸需每日报告 (达到0.02%阈值时)
-
-交收制度:
-  T+2交收 (买入T+2日才能提取股份)
-  但交易可T+0 (预付制度下)
-
-回测影响:
-  - 无涨跌停 → 极端波动大, 止损更重要
-  - T+0 → 日内策略可行
-  - 流动性低 → 小盘股滑点大, 冲击成本需纳入
+Backtest impact:
+  - Daily backtests default to filling at the T+1 open
+  - Last 3-minute closing auction: large orders cluster; VWAP strategies must account for it
+  - Limit orders placed during the call auction can move the opening price
 ```
 
-### 美股交易规则
-
+**Block trades**:
 ```
-交易时间(北京时间):
-  夏令时: 21:30-04:00
-  冬令时: 22:30-05:00
-  盘前: 16:00-21:30 / 17:00-22:30
-  盘后: 04:00-08:00 / 05:00-09:00
+Time: 15:00-15:30 (after the close)
+Discount: typically 3-8% below the closing price
+Restriction: the buyer cannot sell in the secondary market for 6 months (used for major-holder reductions)
 
-PDT规则(Pattern Day Trader):
-  条件: 5个交易日内日内交易(当日开平) ≥ 4次
-  触发后: 账户需维持 ≥ $25,000 余额
-  低于$25,000: 账户被限制90天只能平仓
-
-  规避方法:
-  - 使用现金账户(Cash Account, T+2交收, 无PDT限制但资金效率低)
-  - 账户维持 > $25,000
-  - 控制日内交易频率 < 4次/5日
-
-熔断机制:
-  Level 1: S&P 500下跌 7% → 暂停15分钟 (15:25后不触发)
-  Level 2: S&P 500下跌13% → 暂停15分钟 (15:25后不触发)
-  Level 3: S&P 500下跌20% → 当日停止交易
-
-  个股LULD(Limit Up-Limit Down):
-  涨跌幅超过参考价±5%(大盘股)/±10%(小盘股) → 暂停5分钟
-
-RegSHO(做空规则):
-  - Locate requirement: 做空前必须确认可借到股份
-  - Close-out: 连续13天无法交割 → 强制平仓
-  - Short Sale Circuit Breaker: 个股跌>10% → 当日+次日只能uptick做空
-
-回测影响:
-  - 美股无日常涨跌停 → 但有LULD暂停
-  - T+0交易(保证金账户) → 日内策略可行
-  - 盘前盘后交易量低, 滑点大
+Signal meaning:
+  Frequent block trades + large discount -> likely insider selling pressure (bearish)
+  Lock-up ends 6 months after the block -> watch for selling pressure on the unlock date
 ```
 
-### 加密货币监管
+### Crypto Regulation
 
 ```
-主要市场政策(截至2026):
-  中国大陆: 禁止交易所运营和ICO, 但持有不违法
-  香港: VASP牌照制度, 合规交易所(HashKey等)
-  美国: SEC/CFTC双重监管, BTC/ETH现货ETF已获批
-  欧盟: MiCA法规2024年全面生效
-  日本: FSA监管, 交易所需注册
-  新加坡: MAS监管, Payment Services Act
+Major jurisdictions (as of 2026):
+  United States: SEC/CFTC dual oversight; spot BTC/ETH ETFs approved; exchanges need FinCEN MSB registration and state licenses
+  Hong Kong: VASP licensing regime; licensed exchanges (HashKey, etc.)
+  Mainland China: exchange operations and ICOs banned, but holding is not illegal
+  European Union: MiCA fully in force since 2024
+  Japan: FSA supervision; exchanges must register
+  Singapore: MAS supervision under the Payment Services Act
 
-稳定币监管趋势:
-  - USDT: 储备金透明度争议, 部分地区限制
-  - USDC: 合规性更好, Circle受美国监管
-  - 各国推进央行数字货币(CBDC)可能替代
+Stablecoin regulatory trends:
+  - USDT: reserve-transparency disputes; restricted in some jurisdictions
+  - USDC: stronger compliance profile; Circle is US-regulated
+  - Central-bank digital currencies (CBDCs) may displace some use cases
 
-DeFi合规:
-  - 大部分DeFi协议目前处于监管灰色地带
-  - 趋势: 要求前端KYC, 链上交易仍自由
-  - 风险: 智能合约风险不受投资者保护法覆盖
+DeFi compliance:
+  - Most DeFi protocols currently sit in a regulatory grey area
+  - Trend: front-end KYC required, on-chain transactions remain permissionless
+  - Risk: smart-contract losses are not covered by investor-protection law
 
-回测影响:
-  - 加密市场7×24交易, 无休市
-  - 无涨跌停限制, 极端波动可达50%+/日
-  - 交易所间价差可达1-3%(套利机会但也有风险)
-  - OKX等主流所杠杆最高125x(合约), 回测需正确计算爆仓价
+Backtest impact:
+  - Crypto trades 24/7 with no market close
+  - No price limits; extreme moves can exceed 50%/day
+  - Cross-exchange spreads can reach 1-3% (arbitrage opportunity, but with counterparty risk)
+  - Major exchanges (OKX etc.) offer up to 125x on perpetuals; the backtest must compute liquidation prices correctly
+  - US taxpayers: every crypto sale or swap is a taxable event (see Tax Impact below)
 ```
 
-## 分析框架
+## Analysis Framework
 
-### 1. 回测规则约束矩阵
+### 1. Backtest Rule-Constraint Matrix
 
 ```
-| 规则 | A股 | 港股 | 美股 | 加密(OKX) |
+| Rule | US | HK | A-share | Crypto (OKX) |
 |------|-----|------|------|-----------|
-| 涨跌停 | ±10/20/30% | 无 | LULD暂停 | 无 |
-| T+N | T+1 | T+0 | T+0(保证金) | T+0 |
-| 做空 | 融券(贵) | 容易 | 容易 | 永续合约 |
-| 交易时间 | 4h/日 | 5.5h/日 | 6.5h/日 | 24/7 |
-| 手续费 | 0.025%+印花税0.05% | 0.03%+印花税0.1% | $0(部分) | 0.02-0.05% |
-| 最小交易单位 | 100股 | 1手(不等) | 1股 | 0.001BTC |
+| Price limits | LULD halts | None | ±10/20/30% | None |
+| T+N | T+1 settle, same-day trading (margin) | T+0 trading, T+2 settle | T+1 | T+0 |
+| Shorting | Easy (locate required) | Easy | Securities lending (expensive) | Perpetual futures |
+| Trading hours | 6.5h/day | 5.5h/day | 4h/day | 24/7 |
+| Fees | $0 commission (most brokers) + SEC/FINRA fees | 0.03% + 0.1% stamp duty | 0.025% + 0.05% stamp duty | 0.02-0.05% |
+| Min trade size | 1 share (fractional at some brokers) | 1 board lot (varies) | 100 shares | 0.001 BTC |
 ```
 
-### 2. 跨市场策略的合规检查
+### 2. Compliance Checklist for Cross-Market Strategies
 
 ```
-检查清单:
-  □ 交易时间是否重叠(时区转换)
-  □ 各市场假期差异(A股春节/国庆 vs 美股圣诞/感恩节)
-  □ 汇率风险是否纳入(人民币/港币/美元/USDT)
-  □ 做空可行性(A股策略中做空信号能否执行)
-  □ 最小交易单位约束(A股100股整手 → 小资金可能无法精确配比)
-  □ 印花税/证管费等隐含成本是否纳入
+Checklist:
+  □ Do trading hours overlap (time-zone conversion)?
+  □ Holiday differences (US Thanksgiving/Christmas vs A-share Lunar New Year/National Day)
+  □ Is FX risk included (USD / HKD / CNY / USDT)?
+  □ Can short signals actually be executed (borrow availability; A-share restrictions)?
+  □ Minimum trade-size constraints (HK board lots; A-share 100-share round lots -> small accounts cannot size precisely)
+  □ Are stamp duties, exchange fees and regulatory fees included?
+  □ Does the strategy trip the PDT rule or the wash-sale rule in a US account?
 
-A股真实交易成本:
-  佣金: 0.025% (万2.5, 最低5元/笔)
-  印花税: 0.05% (卖出时, 2023年减半)
-  过户费: 0.001%
-  规费: 0.00687%
-  合计(单边): 约0.08%
-  合计(双边): 约0.16%
+US real trading costs (retail):
+  Commission: $0 at most brokers (IBKR Pro about $0.005/share, min $1)
+  SEC fee: $27.80 per $1M sold (FY2025 rate; sells only)
+  FINRA TAF: $0.000166/share sold (max $8.30 per trade)
+  Spread + slippage: 0.01-0.05% on large caps, far more on small caps
+  Total (round trip): about 0.03-0.1% on liquid names
 
-  影响: 月换手1次 → 年化成本约1.9%
-         月换手4次 → 年化成本约7.7%
+  Impact: 1 turnover/month -> about 0.4-1.2%/year in explicit + implicit costs
+          4 turnovers/month -> about 1.5-5%/year, plus short-term-gains tax drag (see below)
+
+A-share real trading costs:
+  Commission: 0.025% (min CNY 5 per order)
+  Stamp duty: 0.05% (sells only; halved in 2023)
+  Transfer fee: 0.001%
+  Regulatory fees: 0.00687%
+  Total (one way): about 0.08%
+  Total (round trip): about 0.16%
 ```
 
-### 3. 税务影响
+### 3. Tax Impact
 
 ```
-A股:
-  股票买卖: 免个人所得税（2024年继续免征）
-  股息税: 持有>1年免税; 1个月-1年=10%; <1个月=20%
-  基金分红: 免个人所得税
+United States (IRS):
+  Capital gains: short-term (held <= 1 year) taxed as ordinary income (10-37%);
+                 long-term (held > 1 year) at 0/15/20% by income bracket, plus 3.8% NIIT for high earners
+  Dividends: qualified dividends taxed at long-term rates (needs > 60 days held around the ex-date);
+             non-qualified dividends (REITs, most foreign payers, short holds) taxed as ordinary income
+  Losses: offset gains; up to $3,000/year of net losses against ordinary income; the rest carries forward
+  Wash sales: disallowed losses are added to basis (see above)
+  Section 1256 contracts (index options, futures): 60% long-term / 40% short-term regardless of holding period
+  Tax-advantaged accounts (IRA/401k): no capital-gains tax on trades inside the account (but no loss harvesting either)
+  Reporting: broker Form 1099-B; cost-basis method FIFO by default, specific-lot if elected
 
-  回测影响: 高股息策略需考虑持有期的税务差异
-  年化股息5% × 20%税率 = 1%的税务拖累（短期持有时）
+  Backtest impact: a high-turnover strategy pays short-term rates on every gain;
+  a 20% gross return nets about 13% at a 35% marginal rate versus about 16% if held > 1 year
 
-港股(通过港股通):
-  股息税: 20%（H股）或 10%（红筹/民企）
-  资本利得: 免税
-  注意: 港股通股息税由中国结算代扣
+Hong Kong:
+  Capital gains: none
+  Dividend tax: none for HK-domiciled companies (US holders still owe US tax on the dividends)
+  Stamp duty: 0.1% per side is the main friction
 
-美股:
-  股息税: 10%(中美税收协定)
-  资本利得: 目前中国居民暂免, 但需关注政策变化
-  W-8BEN表格: 券商要求填写以享受协定税率
+China A-share (mainland residents):
+  Stock trading gains: exempt from individual income tax (exemption extended through 2024 and beyond)
+  Dividend tax: exempt if held > 1 year; 10% for 1 month-1 year; 20% if held < 1 month
+  Fund distributions: exempt
+  US holders (via Stock Connect or ADRs): 10% withholding under the US-China treaty, creditable on Form 1116
 
-加密货币:
-  中国: 暂无明确税收规定（但大额交易可能被追溯）
-  美国: 资本利得税(短期=普通收入税率, 长期=0/15/20%)
+Crypto:
+  United States: taxed as property; every sale, swap, or spend is a capital-gains event
+                 (short/long-term rates as above); staking and mining rewards are ordinary income;
+                 the wash-sale rule does not currently apply to crypto; broker 1099-DA reporting from 2025
+  Mainland China: no explicit tax rules yet (large transactions may be traced retroactively)
 
-  回测影响: 如计入税务, 频繁交易策略的净收益下降显著
+  Backtest impact: once tax is included, the net return of frequent-trading strategies drops significantly
 ```
 
-## 输出格式
+## Output Format
 
-合规检查报告：
+Compliance check report:
 ```
-=== 策略合规检查 ===
-策略: A股+港股 多空配对交易
-标的: 600519.SH (贵州茅台) + 0700.HK (腾讯)
+=== Strategy Compliance Check ===
+Strategy: US + HK long/short cross-listing pair trade
+Instruments: BABA (Alibaba ADR, NYSE) + 9988.HK (Alibaba, HKEX)
 
-=== 规则约束 ===
-A股做空: 需融券 → 600519融券费率约8%/年, 券源有限
-港股做空: 0700.HK做空成本约1.5%/年, 券源充足
-T+N差异: A股T+1 vs 港股T+0 → 配对信号执行有时差
-涨跌停: A股±10% 可能阻止止损执行
-交易时间: A股9:30-15:00 vs 港股9:30-16:00 → 14:57-16:00港股单边暴露
+=== Rule Constraints ===
+US short: locate required -> BABA borrow cost about 0.5%/year, ample supply
+HK short: 9988.HK is a designated short-sell security; borrow cost about 1.5%/year
+PDT: same-day round trips on the US leg count as day trades -> keep equity > $25,000 or hold overnight
+Settlement: US T+1 vs HK T+2 -> cash-account users must track settled funds separately
+Price limits: none on either leg, but an LULD halt on BABA can delay one side of the pair
+Trading hours: HK 9:30-16:00 HKT vs US 9:30-16:00 ET -> no overlap; each leg is exposed alone for about 17 hours
+Wash sale: BABA and 9988.HK are likely "substantially identical" -> a loss on one leg can be disallowed if the other is bought within 30 days
 
-=== 成本估算 ===
-A股交易成本: 0.16%/双边
-港股交易成本: 0.26%/双边 (含印花税0.1%)
-融券成本(A股): 8%/年
-融券成本(港股): 1.5%/年
-汇率对冲成本: 约1%/年
+=== Cost Estimate ===
+US trading cost: about 0.05%/round trip (spread + SEC/FINRA fees)
+HK trading cost: 0.26%/round trip (incl. 0.1% stamp duty)
+Borrow cost (US): 0.5%/year
+Borrow cost (HK): 1.5%/year
+FX hedging cost: near zero (HKD is pegged to USD)
 
-=== 建议 ===
-1. A股端用股指期货替代融券做空 → 成本降至2-3%/年
-2. 配对交易信号在14:57前执行A股端, 港股端可延迟
-3. 汇率风险: 人民币/港币波动约±3%/年, 小于策略预期收益则可不对冲
+=== Recommendations ===
+1. Hold each leg overnight instead of round-tripping intraday -> avoids PDT day-trade counts
+2. Execute the HK leg at the HK close and the US leg at the US open; size for the overnight gap
+3. Track the 61-day wash-sale window on both tickers; consider running the pair inside an IRA if allowed
 ```
 
-## 注意事项
+## Notes
 
-1. **规则动态变化**：监管规则频繁调整（如2023年印花税减半、融券T+0限制），回测需按历史时点使用对应规则
-2. **回测 vs 实盘差距**：涨跌停封板无法成交是回测最大失真来源，高换手策略需严格建模
-3. **A股特殊时段**：集合竞价9:15-9:25和尾盘14:57-15:00规则与连续竞价不同，信号执行需区分
-4. **跨市场假期**：A股春节休市约10天，期间港美股和加密市场正常交易，需处理信号中断
-5. **监管风险溢价**：加密市场政策不确定性本身是风险因子，应在策略中纳入
-6. **券商差异**：不同券商的佣金率、融券费率、系统延迟差异显著，回测参数应取保守值
+1. **Rules change constantly**: regulators adjust rules frequently (US T+1 settlement in 2024, A-share stamp-duty cut in 2023, securities-lending restrictions); backtests should apply the rules in force at each historical point
+2. **Backtest vs live gap**: unfillable orders at halts and price limits are the largest source of backtest distortion; high-turnover strategies must model them strictly
+3. **Special sessions**: US opening/closing auctions and A-share call auctions (9:15-9:25 and 14:57-15:00) behave differently from continuous trading; signal execution must distinguish them
+4. **Cross-market holidays**: the A-share Lunar New Year closure lasts about 10 days while HK, US and crypto keep trading; handle the signal gap
+5. **Regulatory risk premium**: policy uncertainty in crypto is itself a risk factor and should be built into the strategy
+6. **Broker differences**: commissions, borrow rates, margin rates and system latency vary widely between brokers; use conservative backtest parameters
 
-## 依赖
+## Dependencies
 
 ```bash
 pip install pandas numpy

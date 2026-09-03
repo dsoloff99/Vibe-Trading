@@ -64,7 +64,9 @@ from src.market_data import (
         ("^SPX", "yahoo"),  # index (S&P 500)
         ("^FTSE", "yahoo"),  # index (FTSE 100)
         ("^VIX", "yahoo"),
-        ("something_weird", "tushare"),  # documented fallback
+        ("something_weird", "yahoo"),  # documented fallback: US chain head
+        ("AAPL", "yahoo"),  # bare US ticker
+        ("600519", "tencent"),  # bare 6-digit A-share code
     ],
 )
 def test_detect_source(code: str, expected: str) -> None:

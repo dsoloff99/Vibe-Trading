@@ -1,6 +1,6 @@
 ---
 name: chanlun
-description: 基于缠论（缠中说禅）的形态识别引擎，使用czsc库自动检测K线分型、笔、中枢，并生成一买/一卖/二买/二卖/三买/三卖等买卖点信号。支持多周期分析和形态分类（3/5/7/9/11笔形态）。
+description: Chan Theory (Chanlun) pattern-recognition engine using the czsc library to detect fractals, strokes and central pivots on candlestick data and emit first/second/third-class buy and sell signals, with multi-timeframe analysis and 3/5/7/9/11-stroke pattern classification.
 category: strategy
 ---
 # 缠论形态识别

@@ -1,259 +1,315 @@
 ---
 name: convertible-bond
-description: A股可转债分析——转股/纯债/期权三维估值、下修/强赎/回售博弈、双低策略与转债轮动选债框架
+description: Convertible bond analysis covering three-way valuation (bond floor, conversion value, option value), call/put/reset term analysis, cheapness screens and rotation frameworks, with China A-share market notes on conversion-price resets, forced redemption, put clauses and the double-low strategy; use it when the user asks to value, screen, or trade convertible bonds.
 category: asset-class
 ---
 
-# A股可转债分析
+# Convertible Bond Analysis
 
-## 概述
+## Overview
 
-A股可转债是具有"债底保护+股票期权"特征的混合品种。本skill覆盖可转债三维估值、条款博弈分析、双低策略和轮动选债框架。
+A convertible bond is a hybrid instrument with a "bond floor plus equity option" profile. This skill covers three-way convertible valuation, analysis of the embedded terms (calls, puts, resets), cheapness screens and a rotation framework for selecting converts. It applies to US converts by default, with A-share specifics collected in the China market notes at the end.
 
-## 可转债基础概念
+## Convertible Bond Basics
 
-### 核心要素
+### Core Elements
 
-| 要素 | 说明 | 示例 |
+| Element | Description | Example (US) |
 |------|------|------|
-| 面值 | 100元 | - |
-| 票面利率 | 递增，通常0.3%-2.0% | 第1年0.4%...第6年2.0% |
-| 转股价 | 转换成股票的价格 | 转股价15.00元 |
-| 到期期限 | 通常6年 | 2024-2030 |
-| 到期赎回价 | 面值+最后一年利息+补偿 | 110-115元 |
-| 回售条款 | 股价持续低于转股价70%可回售 | 连续30个交易日中30天<70% |
-| 强赎条款 | 股价持续高于转股价130%可强赎 | 连续30个交易日中15天>130% |
-| 下修条款 | 可以下调转股价 | 连续30个交易日中15天<85% |
+| Par value | $1,000 per bond; prices quoted as % of par (100 = par) | - |
+| Coupon | Fixed, usually 0%-3% for US issuers (A-share coupons step up over time) | Uber 0.875% 2028, MicroStrategy 0% 2030 |
+| Conversion price | Stock price at which the bond converts into shares | Conversion price $50.00 (ratio 20 shares per $1,000) |
+| Maturity | Usually 5-7 years (A-share: 6 years) | 2024-2029 |
+| Redemption at maturity | Par (A-share: par + final coupon + premium, 110-115) | 100 |
+| Investor put | Holder can sell the bond back at par on set dates (common in older US deals) | Put at par on year 5 |
+| Issuer call | Issuer can redeem early once the stock stays far above the conversion price | Soft call at 130% for 20 of 30 trading days after the non-call period |
+| Reset (downward revision) | Conversion price can be lowered (rare in US deals; standard in A-share) | Reset if the stock stays below 85% of the conversion price |
 
-### 关键指标
+### Key Metrics
 
 ```
-转股价值 = 面值 / 转股价 × 正股价格
-         = 100 / 15.00 × 18.00 = 120.00元
+Conversion value = par / conversion price × stock price
+                 = 100 / 50.00 × 60.00 = 120.00
 
-转股溢价率 = (转债价格 - 转股价值) / 转股价值 × 100%
-           = (125 - 120) / 120 × 100% = 4.17%
+Conversion premium = (bond price - conversion value) / conversion value × 100%
+                   = (125 - 120) / 120 × 100% = 4.17%
 
-纯债价值 = Σ(票息 / (1+r)^t) + 到期赎回价 / (1+r)^n
-         ≈ 85-95元（取决于剩余期限和利率）
+Bond floor = Σ(coupon / (1+r)^t) + redemption price / (1+r)^n
+           ≈ 85-95 (depends on remaining term, credit spread and rates)
 
-纯债溢价率 = (转债价格 - 纯债价值) / 纯债价值 × 100%
+Bond-floor premium = (bond price - bond floor) / bond floor × 100%
 ```
 
-## 三维估值体系
+## Three-Way Valuation
 
-### 1. 纯债价值（债底）
+### 1. Bond Floor (debt value)
 
 ```python
 def bond_floor(coupon_rates: list, years_remaining: float,
                redemption_price: float = 110, yield_rate: float = 0.03) -> float:
     """
     Args:
-        coupon_rates: 剩余各年票面利率列表，如 [0.8, 1.0, 1.5, 2.0]
-        years_remaining: 剩余年限
-        redemption_price: 到期赎回价
-        yield_rate: 折现率（同期信用债收益率，约2.5-4%）
+        coupon_rates: coupon rates for each remaining year, e.g. [0.8, 1.0, 1.5, 2.0]
+        years_remaining: years to maturity
+        redemption_price: redemption price at maturity
+        yield_rate: discount rate (comparable corporate-bond yield, roughly 2.5-4% for A-share;
+                    use the issuer's straight-debt yield, e.g. 5-8%, for US high-yield issuers)
     Returns:
-        纯债价值
+        bond floor (debt value)
     """
     pv = sum(c * 100 / (1 + yield_rate)**i for i, c in enumerate(coupon_rates, 1))
     pv += redemption_price / (1 + yield_rate)**len(coupon_rates)
     return pv
 ```
 
-**纯债价值含义**：
-- 纯债价值越高 → 债底保护越强 → 下跌空间有限
-- 通常纯债价值在 85-100 之间
-- 转债价格跌到纯债价值附近 = "债性转债"，安全但弹性小
+**What the bond floor means**:
+- Higher bond floor -> stronger downside protection -> limited room to fall
+- Typically the bond floor sits between 85 and 100 (lower for 0% US converts from high-yield issuers)
+- A convert trading near its bond floor is a "busted" or debt-like convert: safe but with little upside
 
-### 2. 转股价值（股性）
-
-```
-转股价值 = 100 / 转股价 × 正股当前价
-
-影响因子:
-- 正股价格（正相关）
-- 转股价（负相关）
-- 下修转股价 → 转股价值上升
-```
-
-### 3. 期权价值
+### 2. Conversion Value (equity value)
 
 ```
-期权价值 = 转债价格 - max(纯债价值, 转股价值)
+Conversion value = 100 / conversion price × current stock price
 
-期权价值高 → 市场看好正股上涨潜力 或 看好下修概率
-期权价值低/负 → 便宜（可能有机会）
+Drivers:
+- Stock price (positive)
+- Conversion price (negative)
+- Downward reset of the conversion price -> conversion value rises
 ```
 
-### 三维判断矩阵
+### 3. Option Value
 
-| 转股价值 | 纯债价值 | 转债类型 | 策略 |
+```
+Option value = bond price - max(bond floor, conversion value)
+
+High option value -> the market expects stock upside or (A-share) a likely conversion-price reset
+Low or negative option value -> cheap (possible opportunity, or a credit problem)
+```
+
+### Three-Way Classification Matrix
+
+| Conversion value | Bond floor | Convert type | Strategy |
 |---------|---------|---------|------|
-| >120 | 不重要 | 偏股型 | 跟随正股，关注强赎风险 |
-| 100-120 | 不重要 | 平衡型 | 进可攻退可守，最佳区间 |
-| <100 | >90 | 偏债型 | 持有吃利息，等下修/正股反弹 |
-| <80 | <85 | 困境型 | 高风险，可能有信用风险 |
+| >120 | Irrelevant | Equity-like (in the money) | Tracks the stock; watch call risk |
+| 100-120 | Irrelevant | Balanced | Best zone: upside participation with downside cushion |
+| <100 | >90 | Debt-like (busted) | Collect the yield; wait for a reset or a stock rebound |
+| <80 | <85 | Distressed | High risk; possible credit event |
 
-## 条款博弈分析
+## Term Analysis
 
-### 下修博弈
+### Issuer Call
 
-**触发条件**：连续30个交易日中15天正股收盘价低于当期转股价的85%。
-
-```
-下修概率评估:
-1. 触发条件已满足/接近满足 → 高概率
-2. 大股东持有大量转债未转股 → 高概率（有动力下修）
-3. 公司即将面临回售 → 高概率（下修避免回售）
-4. 公司现金充裕、无还债压力 → 低概率（无动力下修）
-5. 转股会大幅稀释股权 → 低概率（控制权顾虑）
-
-下修后影响:
-- 转股价值 = 100 / 新转股价 × 正股价，通常瞬间上升
-- 转债价格通常上涨 5-15%
-- 但正股可能因稀释预期下跌
-```
-
-### 强赎博弈
-
-**触发条件**：连续30个交易日中15天正股收盘价高于转股价的130%。
+**Typical US terms**: soft call once the stock closes above 130% of the conversion price for 20 of 30 consecutive trading days after the non-call period (usually 3 years); some deals have a hard call date instead.
 
 ```
-强赎应对:
-1. 公告强赎 → 必须在赎回日前转股或卖出
-2. 赎回价通常 100.XX 元 → 远低于转股价值
-3. 不转股 = 巨亏（如转债价160元，赎回价100元）
+Assessing call risk:
+1. Stock persistently above 130% of conversion price and non-call period expired -> high probability
+2. Issuer can refinance more cheaply -> high probability (call to force conversion and remove the debt)
+3. Issuer wants to avoid dilution -> lower probability (call forces conversion into shares)
 
-强赎信号:
-- 正股价持续>转股价130% → 数天数
-- 公司公告"不提前赎回" → 暂时安全
-- 转股进度已>90% → 可能不赎回
+What a call does:
+- Holders must convert (or sell) before the redemption date or receive only par
+- Caps the bond price near conversion value; the convert loses its premium
+- Option value collapses toward zero
 ```
 
-### 回售博弈
+### Investor Put
 
-**触发条件**：正股价连续30天低于转股价的70%（最后2个计息年度）。
-
-```
-回售 = 投资者有权以面值+利息卖回给公司
-
-公司应对:
-1. 下修转股价 → 避免回售
-2. 拉升股价 → 避免触发条件
-3. 接受回售 → 掏钱还债
-
-投资者策略:
-- 在回售期持有纯债价值附近的转债 → 下有回售保底
-- 下修预期 → 赚下修收益
-```
-
-## 双低策略
-
-### 策略逻辑
+**Typical US terms**: holder may put the bond to the issuer at par plus accrued interest on a fixed date (often year 5 of a 7-year deal); also triggered by a fundamental change (takeover).
 
 ```
-双低值 = 转债价格 + 转股溢价率 × 100
+Put = the investor's right to sell the bond back to the issuer at par plus accrued interest
 
-双低值越低 → 价格低 + 溢价率低 → 性价比高
+Issuer responses:
+1. Refinance and honor the put -> pay cash
+2. Sweeten terms (coupon step-up or conversion-price reset) -> discourage the put
+3. Buy back bonds in the open market ahead of the put date
 
-筛选条件:
-1. 双低值 < 130（严格）或 < 150（宽松）
-2. 转债价格 < 115（安全）
-3. 转股溢价率 < 30%（弹性）
-4. 剩余期限 > 1年（避免到期压力）
-5. 信用评级 ≥ AA-（避免信用风险）
+Investor strategy:
+- Hold a busted convert trading below par into the put date -> yield-to-put is the floor return
+- Fundamental-change put + make-whole table -> protection in a takeover
 ```
 
-### 双低选债示例
+### Conversion-Price Reset
+
+**Where it applies**: standard in A-share deals (see China market notes); in US deals only as anti-dilution adjustments (stock splits, special dividends) or in death-spiral structures of small-cap issuers.
+
+```
+Effect of a reset:
+- Conversion value = 100 / new conversion price × stock price, rises immediately
+- Bond price usually rises 5-15%
+- The stock may fall on dilution expectations
+```
+
+## Cheapness Screen
+
+### Screen Logic
+
+```
+Cheapness score = bond price + conversion premium × 100
+
+Lower score -> low price + low premium -> better risk/reward
+
+Filters:
+1. Score < 130 (strict) or < 150 (loose)
+2. Bond price < 115 (safety)
+3. Conversion premium < 30% (upside participation)
+4. Remaining term > 1 year (avoid maturity pressure)
+5. Credit: issuer with positive free cash flow or investment-grade rating (avoid credit risk)
+6. Issue size > $300M (liquidity; US converts trade OTC)
+```
+
+### Screen Example
 
 ```markdown
-### 双低排名 Top 10
+### Cheapness Ranking Top 10
 
-| 排名 | 转债名 | 价格 | 溢价率 | 双低值 | 评级 | 剩余年限 |
+| Rank | Convert | Price | Premium | Score | Rating | Years left |
 |------|--------|------|--------|--------|------|---------|
-| 1 | XX转债 | 105.2 | 12.3% | 117.5 | AA | 3.2年 |
-| 2 | YY转债 | 108.5 | 15.6% | 124.1 | AA | 2.8年 |
+| 1 | XYZ 0.25% 2029 | 105.2 | 12.3% | 117.5 | BB+ | 3.2 |
+| 2 | ABC 1.50% 2028 | 108.5 | 15.6% | 124.1 | BBB- | 2.8 |
 | ... | ... | ... | ... | ... | ... | ... |
 ```
 
-### 双低策略回测框架
+**Historical reference** (US balanced converts, ICE BofA US Convertible Index):
+- Annualized return: roughly 60-70% of equity upside with 40-50% of the drawdown
+- Maximum drawdown: about -25% in 2008, -15% in 2022
+- Sharpe: 0.6-0.9 over full cycles
+- Key risks: credit risk (small-cap 0% coupon issuers), rate sensitivity for busted converts
+
+## Convertible Rotation Strategy
+
+### Rotation Dimensions
+
+| Dimension | Indicator | Signal |
+|------|------|------|
+| Price | Bond price | <110 very cheap, 110-120 fair, >130 expensive |
+| Participation | Conversion premium | <10% high delta, 10-30% balanced, >50% pure debt |
+| Safety | Bond floor / price | >0.9 = large margin of safety |
+| Terms | Call / put / reset outlook | Put date near + below par = protected; call risk = cap |
+| Stock | Stock momentum | Positive stock trend = source of upside |
+
+### Rotation Process
+
+```
+1. Screen the universe (exclude: matured / called / distressed credits)
+2. Score each dimension
+3. Rank by composite score
+4. Select the top 15-20 equal-weighted
+5. Rebalance monthly
+```
+
+## Output Format
+
+```markdown
+## Convertible Bond Analysis: [Issuer coupon maturity / CUSIP]
+
+### Basic Information
+| Metric | Value |
+|------|-----|
+| Current price | 112.50 |
+| Conversion value | 98.30 |
+| Bond floor | 92.15 |
+| Conversion premium | 14.4% |
+| Bond-floor premium | 22.1% |
+| Cheapness score | 126.9 |
+| Years to maturity | 3.5 |
+| Rating | BB+ |
+
+### Three-Way Valuation
+- **Downside protection**: bond floor 92.15; about 18% of downside before the floor
+- **Equity participation**: premium 14.4% is low; a 10% stock rally should lift the bond about 8%
+- **Option value**: price - max(bond floor, conversion value) = 14.2; reasonable
+
+### Term Analysis
+- **Call risk**: low (stock is 35% below the 130% call trigger; non-call period ends in 18 months)
+- **Put protection**: put at par in 2.5 years -> yield-to-put about 1.2%
+- **Reset**: none (anti-dilution adjustments only)
+
+### Investment View
+Cheapness score 126.9 sits in the attractive zone. Suggested...
+```
+
+## Notes
+
+1. **Credit risk is the biggest landmine**: small-cap 0% coupon issuers have defaulted or restructured; be cautious with unrated or low-rated converts
+2. **Watch the call clock**: after a call notice, failing to convert or sell means receiving par; check call notices daily
+3. **Liquidity risk**: US converts trade OTC (144A) and small issues may not trade for days; large positions are hard to exit; retail investors often access the asset class via ETFs (CWB, ICVT)
+4. **Terms differ deal by deal**: call triggers, put dates, make-whole tables and dilution adjustments vary; read the indenture for each bond
+5. **Holding to maturity without converting**: you only receive par plus coupons; buying well above par and holding to maturity locks in a loss
+6. **Data access**: US convert terms come from the prospectus/indenture (SEC EDGAR); prices from FINRA TRACE; stock OHLCV via the standard market-data interface
+7. **Backtest limitations**: convertible backtests need conversion prices, call/put schedules and credit data beyond stock data, so they are more complex than equity backtests
+
+## China Market Notes (A-share Convertibles)
+
+A-share converts have standardized terms and trade T+0 on the exchanges, which creates a distinctive "term game" and a well-known cheapness strategy.
+
+### Standard A-share Terms
+
+| Element | Description | Example |
+|------|------|------|
+| Par value | CNY 100 | - |
+| Coupon | Step-up, usually 0.3%-2.0% | Year 1: 0.4% ... Year 6: 2.0% |
+| Maturity | Usually 6 years | 2024-2030 |
+| Redemption at maturity | Par + final coupon + premium | 110-115 |
+| Put clause | Puttable if the stock stays below 70% of the conversion price | 30 consecutive trading days below 70% (last 2 interest years) |
+| Forced redemption | Callable if the stock stays above 130% of the conversion price | 15 of 30 consecutive trading days above 130% |
+| Downward reset | Conversion price can be lowered | 15 of 30 consecutive trading days below 85% |
+
+### Downward Reset Game
+
+```
+Reset probability assessment:
+1. Trigger met or nearly met -> high probability
+2. Major shareholder holds a large unconverted position -> high probability (incentive to reset)
+3. Company is about to face a put -> high probability (reset to avoid the put)
+4. Company is cash-rich with no repayment pressure -> low probability (no incentive)
+5. Conversion would heavily dilute control -> low probability (control concerns)
+
+After a reset: conversion value jumps, bond price typically rises 5-15%, stock may fall on dilution
+```
+
+### Forced Redemption Game
+
+```
+Handling a forced redemption:
+1. Redemption announced -> must convert or sell before the redemption date
+2. Redemption price is usually 100.xx -> far below conversion value
+3. Not converting = large loss (e.g. bond at 160, redeemed at 100)
+
+Redemption signals:
+- Stock persistently above 130% of the conversion price -> count the days
+- Company announces "no early redemption" -> temporarily safe
+- Conversion progress > 90% -> redemption may not be exercised
+```
+
+### Put Game
+
+```
+Put = the investor's right to sell back to the company at par plus interest
+
+Company responses: reset the conversion price (avoid the put) / support the stock price / accept the put and pay
+Investor strategy: hold converts near the bond floor during the put window -> put is the floor;
+                   reset expectations -> earn the reset gain
+```
+
+### Double-Low Strategy
+
+```
+Double-low score = bond price + conversion premium × 100
+Filters: score < 130 (strict) or < 150 (loose); price < 115; premium < 30%;
+         remaining term > 1 year; credit rating >= AA-
+```
 
 ```python
 class ConvertibleBondEngine:
-    """双低策略信号引擎"""
+    """Double-low strategy signal engine"""
     def generate(self, data_map):
-        # 每月末计算双低值
-        # 选 Top N 等权配置
-        # 下月初调仓
+        # Compute the double-low score at each month-end
+        # Select the top N, equal-weighted
+        # Rebalance at the start of the next month
         pass
 ```
 
-**历史表现参考**（A股可转债）：
-- 年化收益：10-15%
-- 最大回撤：-8% ~ -15%
-- Sharpe：1.0-1.5
-- 关键风险：信用风险（小盘转债违约）
-
-## 转债轮动策略
-
-### 轮动维度
-
-| 维度 | 指标 | 信号 |
-|------|------|------|
-| 价格 | 转债价格 | <110超便宜, 110-120合理, >130偏贵 |
-| 弹性 | 转股溢价率 | <10%高弹性, 10-30%中等, >50%纯债 |
-| 安全 | 纯债价值/价格 | >0.9安全边际高 |
-| 下修 | 下修概率 | 大股东持仓+接近触发=高概率 |
-| 正股 | 正股动量 | 正股趋势向好=弹性来源 |
-
-### 轮动流程
-
-```
-1. 全市场筛选（剔除: 已退市/已公告强赎/评级<A+）
-2. 计算各维度得分
-3. 综合打分排名
-4. 选 Top 15-20 只等权配置
-5. 每月调仓一次
-```
-
-## 输出格式
-
-```markdown
-## 可转债分析: [转债名称/代码]
-
-### 基本信息
-| 指标 | 值 |
-|------|-----|
-| 当前价 | 112.50 |
-| 转股价值 | 98.30 |
-| 纯债价值 | 92.15 |
-| 转股溢价率 | 14.4% |
-| 纯债溢价率 | 22.1% |
-| 双低值 | 126.9 |
-| 剩余年限 | 3.5年 |
-| 评级 | AA |
-
-### 三维估值
-- **债底保护**: 纯债价值92.15, 下跌空间约18%有保护
-- **股性弹性**: 溢价率14.4%偏低, 正股上涨10%转债预计涨8%
-- **期权价值**: 转债价格-max(纯债,转股)=14.2, 合理
-
-### 条款博弈
-- **下修概率**: 中（正股距下修触发价还有12%空间）
-- **强赎风险**: 低（正股距强赎线还有35%）
-- **回售保护**: 尚未进入回售期
-
-### 投资建议
-双低值126.9，属于性价比区间。建议...
-```
-
-## 注意事项
-
-1. **信用风险是最大雷**：A股已出现可转债违约案例（搜特转债等），低评级转债谨慎
-2. **强赎倒计时要盯紧**：公告强赎后不转股/不卖出会巨亏，每天检查强赎公告
-3. **流动性风险**：小盘转债日成交额可能不足100万，大资金进出困难
-4. **条款差异**：每只转债条款细节不同（下修比例、强赎天数），必须逐只核查
-5. **到期不转股**：如果到期没转股，只拿回面值+利息（110左右），高价买入会亏
-6. **数据获取**：可转债数据需通过tushare的可转债接口获取，OHLCV数据可用标准接口
-7. **回测局限**：可转债回测需要转股价、强赎/回售信息等额外数据，比股票回测复杂
+**Historical reference** (A-share converts): annualized 10-15%, max drawdown -8% to -15%, Sharpe 1.0-1.5; key risk is credit (small-cap convert defaults such as Soute convertible). Exclude converts that have delisted, announced forced redemption, or are rated below A+; A-share convert data comes from the tushare convertible-bond interface, and OHLCV is available through the standard interface.

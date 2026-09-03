@@ -143,15 +143,19 @@ class TestExecuteSuccess:
         assert first["snippet"].endswith("…")
 
     def test_global_scope_needs_no_code(self) -> None:
+        """Broad-market headlines come from Yahoo with an English query, so a
+        US-first user never has ``scope='global'`` routed to a China-market
+        news surface."""
         tool = StockNewsTool()
         with patch.object(
-            eastmoney_client, "throttled_get_json", return_value=_em_news_payload()
-        ):
+            yahoo_client, "search_news", return_value=_yahoo_news()
+        ) as srch:
             out = json.loads(tool.execute(scope="global"))
 
+        srch.assert_called_once_with("stock market", 20)
         assert out["ok"] is True
         assert out["market"] == "global"
-        assert out["source"] == "eastmoney"
+        assert out["source"] == "yahoo"
         assert out["data"]["scope"] == "global"
         assert len(out["data"]["articles"]) == 2
 

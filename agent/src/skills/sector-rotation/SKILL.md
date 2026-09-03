@@ -1,192 +1,196 @@
 ---
 name: sector-rotation
-description: 行业轮动分析——申万行业景气度评分、行业动量排名、产业链传导、估值/盈利/资金流多维比较框架
+description: Analyze sector rotation across GICS sectors with a prosperity (business-cycle) scoring model, sector momentum ranking, supply-chain transmission analysis, and a valuation/earnings/fund-flow comparison framework; use when deciding which sectors or sector ETFs to overweight or underweight.
 category: asset-class
 ---
 
-# 行业轮动分析
+# Sector Rotation Analysis
 
-## 概述
+## Overview
 
-基于A股申万行业分类体系，通过景气度评分、动量排名、估值比较、资金流向四个维度进行行业轮动分析，输出行业超配/低配建议。
+Using the GICS sector classification (the 11 S&P 500 sectors and their SPDR sector ETFs), analyze sector rotation across four dimensions - prosperity scoring, momentum ranking, valuation comparison, and fund flows - and output sector overweight/underweight recommendations.
 
-## 申万行业分类体系
+## GICS Sector Classification
 
-### 一级行业（31个）
+### Level-1 sectors (11)
 
-| 大类 | 行业 | 代码示例 |
+| Group | Sectors | ETF example |
 |------|------|---------|
-| 上游周期 | 煤炭、有色、石油石化、钢铁、基础化工 | 煤炭ETF: 515220 |
-| 中游制造 | 电力设备、机械设备、国防军工、汽车 | 新能源ETF: 516160 |
-| 下游消费 | 食品饮料、家用电器、医药生物、美容护理 | 消费ETF: 510150 |
-| TMT | 电子、计算机、通信、传媒 | 科技ETF: 515000 |
-| 金融地产 | 银行、非银金融、房地产 | 金融ETF: 510230 |
-| 公用事业 | 公用事业、交通运输、环保 | 红利ETF: 510880 |
+| Upstream cyclicals | Energy, Materials | Energy ETF: XLE |
+| Midstream manufacturing | Industrials (machinery, aerospace & defense, transportation), autos | Industrials ETF: XLI |
+| Downstream consumer | Consumer Staples, Consumer Discretionary, Health Care | Staples ETF: XLP |
+| TMT | Information Technology, Communication Services | Technology ETF: XLK |
+| Financials & real estate | Financials, Real Estate | Financials ETF: XLF |
+| Utilities & defensives | Utilities, dividend payers | Utilities ETF: XLU |
 
-### 行业周期属性
+### Sector cycle characteristics
 
-| 类型 | 行业 | 特征 | 驱动因子 |
+| Type | Sectors | Traits | Drivers |
 |------|------|------|---------|
-| 强周期 | 煤炭/有色/钢铁/化工 | 盈利波动大，跟宏观紧密 | PPI、PMI、商品价格 |
-| 弱周期 | 食品饮料/医药/公用 | 盈利稳定，防御属性 | CPI、消费数据 |
-| 成长型 | 电子/计算机/电力设备 | 高PE高增速，政策敏感 | 产业政策、渗透率 |
-| 金融 | 银行/非银/保险 | 利差驱动，与利率正相关 | 利率、社融、信贷 |
+| Deep cyclicals | Energy / Materials / Industrials | Volatile earnings, tightly linked to macro | PPI, ISM PMI, commodity prices |
+| Defensive | Consumer Staples / Health Care / Utilities | Stable earnings, defensive | CPI, consumer-spending data |
+| Growth | Information Technology / Communication Services / clean energy | High P/E, high growth, policy sensitive | Industrial policy, adoption rates |
+| Financials | Banks / capital markets / insurance | Spread-driven, positively correlated with rates | Fed funds rate, credit growth, loan demand |
 
-## 景气度评分框架
+## Prosperity Scoring Framework
 
-### 评分维度（满分100）
+### Scoring dimensions (100 points)
 
-| 维度 | 权重 | 指标 | 评分规则 |
+| Dimension | Weight | Metric | Scoring rule |
 |------|------|------|---------|
-| 盈利增速 | 30% | 净利润同比增速 | >30%=30分, 15-30%=22分, 0-15%=15分, <0%=5分 |
-| 盈利趋势 | 20% | 连续N季加速 | 加速3季+=20分, 2季=14分, 减速=-5分 |
-| 景气指标 | 20% | PMI/开工率/价格 | 高位+上行=20分, 高位回落=12分, 低位=5分 |
-| 政策支持 | 15% | 产业政策力度 | 明确利好=15分, 中性=8分, 利空=2分 |
-| 估值安全 | 15% | PE历史分位 | <30%分位=15分, 30-50%=10分, >70%=3分 |
+| Earnings growth | 30% | Net income YoY growth | >30%=30 pts, 15-30%=22, 0-15%=15, <0%=5 |
+| Earnings trend | 20% | Consecutive quarters of acceleration | 3+ quarters=20, 2 quarters=14, decelerating=-5 |
+| Activity indicators | 20% | PMI / capacity utilization / prices | High and rising=20, high but rolling over=12, low=5 |
+| Policy support | 15% | Strength of industrial/fiscal policy | Clear tailwind=15, neutral=8, headwind=2 |
+| Valuation safety | 15% | P/E historical percentile | <30th pct=15, 30-50th=10, >70th=3 |
 
-### 景气度变化信号
+### Prosperity change signals
 
 ```
-景气度上行信号（超配）:
-1. 行业PMI连续2个月>50且环比改善
-2. 龙头公司订单/收入同比加速
-3. 产品价格上行（涨价周期）
-4. 产能利用率>80%且在提升
-5. 政策催化（补贴/准入/国产替代）
+Upturn signals (overweight):
+1. Sector PMI > 50 for 2 consecutive months and improving MoM
+2. Leading companies' orders/revenue accelerating YoY
+3. Product prices rising (pricing-power cycle)
+4. Capacity utilization > 80% and rising
+5. Policy catalysts (subsidies / tax credits such as IRA or CHIPS / deregulation)
 
-景气度下行信号（低配）:
-1. 行业PMI连续2个月<50
-2. 存货周转天数上升（库存积压）
-3. 产品价格下行
-4. 产能过剩（利用率<60%）
-5. 政策收紧（环保/反垄断/集采）
+Downturn signals (underweight):
+1. Sector PMI < 50 for 2 consecutive months
+2. Days inventory outstanding rising (inventory build-up)
+3. Product prices falling
+4. Overcapacity (utilization < 60%)
+5. Policy tightening (regulation / antitrust / drug-pricing reform)
 ```
 
-## 行业动量排名方法
+## Sector Momentum Ranking
 
-### 价格动量
+### Price momentum
 
 ```python
 def sector_momentum(sector_returns: pd.DataFrame, lookback: int = 60, skip: int = 5) -> pd.Series:
     """
     Args:
-        sector_returns: 行业日收益率，columns=行业名
-        lookback: 回看窗口（交易日）
-        skip: 跳过最近N天（避免短期反转）
+        sector_returns: daily sector returns, columns = sector names
+        lookback: lookback window (trading days)
+        skip: skip the most recent N days (avoid short-term reversal)
     Returns:
-        行业动量得分排名
+        sector momentum score ranking
     """
     cum_return = (1 + sector_returns).rolling(lookback).apply(lambda x: x[:-skip].prod() - 1)
     return cum_return.iloc[-1].rank(ascending=False)
 ```
 
-### 盈利动量
+### Earnings momentum
 
 ```
-盈利动量 = 当季ROE同比变化 - 上季ROE同比变化
-正值 = 盈利加速（超配信号）
-负值 = 盈利减速（减配信号）
+Earnings momentum = current-quarter ROE YoY change - prior-quarter ROE YoY change
+Positive = earnings accelerating (overweight signal)
+Negative = earnings decelerating (underweight signal)
 ```
 
-### 综合动量排名
+### Composite momentum ranking
 
 ```
-综合得分 = 0.4 × 价格动量排名 + 0.3 × 盈利动量排名 + 0.3 × 资金流排名
-取 Top 5 行业超配，Bottom 5 行业低配
+Composite score = 0.4 × price momentum rank + 0.3 × earnings momentum rank + 0.3 × fund-flow rank
+Overweight the top 5 sectors, underweight the bottom 5
 ```
 
-## 产业链上下游传导
+## Supply-Chain Transmission
 
-### 典型传导链条
+### Typical transmission chains
 
 ```
-上游（原材料）→ 中游（制造加工）→ 下游（消费/应用）
+Upstream (raw materials) → Midstream (manufacturing) → Downstream (consumption / applications)
 
-示例1: 锂电产业链
-  碳酸锂（上游）→ 正极材料（中游）→ 电池（中游）→ 新能源车（下游）
-  传导：锂价↑ → 正极成本↑ → 电池价格↑ → 车企毛利率↓
+Example 1: EV battery chain
+  Lithium carbonate (upstream) → cathode materials (mid) → battery cells (mid) → EV makers (downstream)
+  Transmission: lithium price↑ → cathode cost↑ → cell price↑ → automaker gross margin↓
 
-示例2: 半导体产业链
-  设备/材料（上游）→ 晶圆制造（中游）→ 封测（中游）→ 消费电子（下游）
-  传导：手机需求↑ → 封测订单↑ → 晶圆产能紧 → 设备资本开支↑
+Example 2: Semiconductor chain
+  Equipment / materials (upstream) → wafer fabrication (mid) → packaging & test (mid) → consumer electronics (downstream)
+  Transmission: smartphone demand↑ → packaging orders↑ → fab capacity tight → equipment capex↑
 
-示例3: 地产产业链
-  土地/融资（上游）→ 开发建设（中游）→ 销售/物业（下游）
-  传导：政策宽松 → 销售回暖(下游先) → 新开工↑(中游) → 拿地↑(上游)
+Example 3: Housing chain
+  Land / financing (upstream) → homebuilding (mid) → home sales / property services (downstream)
+  Transmission: rate cuts → existing-home sales recover (downstream first) → housing starts↑ (mid) → land acquisition↑ (upstream)
 ```
 
-### 传导规律
+### Transmission rules
 
-| 规律 | 说明 | 投资含义 |
+| Rule | Description | Investment implication |
 |------|------|---------|
-| 需求驱动自下而上 | 下游需求 → 中游订单 → 上游原材料 | 需求拐点看下游先动 |
-| 成本传导自上而下 | 上游涨价 → 中游成本 → 下游提价 | 上游涨价利好上游，利空中游 |
-| 库存周期传导 | 主动补库→被动补库→主动去库→被动去库 | 被动去库是买入点 |
-| 领先滞后 | 上游领先中游1-2季度，中游领先下游1-2季度 | 提前布局下一环节 |
+| Demand flows bottom-up | Downstream demand → midstream orders → upstream raw materials | Demand inflections show up downstream first |
+| Cost flows top-down | Upstream price hikes → midstream costs → downstream price increases | Upstream price hikes help upstream, hurt midstream |
+| Inventory-cycle transmission | Active restocking → passive restocking → active destocking → passive destocking | Passive destocking is the buy point |
+| Lead/lag | Upstream leads midstream by 1-2 quarters, midstream leads downstream by 1-2 quarters | Position ahead in the next link of the chain |
 
-## 行业比较框架
+## Sector Comparison Framework
 
-### 估值比较
+### Valuation comparison
 
-| 指标 | 用途 | 注意事项 |
+| Metric | Use | Caveats |
 |------|------|---------|
-| PE(TTM) | 盈利估值 | 周期股PE失真（低PE可能是顶） |
-| PB | 资产估值 | 银行/地产/周期股用PB更合理 |
-| PE历史分位 | 估值位置 | 看5年分位数 |
-| PEG | 成长估值 | <1为低估，>2为高估 |
-| 股息率 | 收益率 | 高股息=防御配置 |
+| P/E (TTM) | Earnings valuation | Cyclical P/E is distorted (a low P/E may mark the peak) |
+| P/B | Asset valuation | Better for banks / real estate / cyclicals |
+| P/E historical percentile | Valuation position | Use the 5-year percentile |
+| PEG | Growth valuation | <1 undervalued, >2 overvalued |
+| Dividend yield | Income yield | High dividend = defensive allocation |
 
-### 盈利比较
+### Earnings comparison
 
-| 指标 | 含义 |
+| Metric | Meaning |
 |------|------|
-| ROE | 盈利能力 |
-| ROE变化 | 盈利趋势 |
-| 毛利率 | 竞争格局 |
-| 净利润增速 | 成长性 |
-| 现金流/净利润 | 盈利质量 |
+| ROE | Profitability |
+| Change in ROE | Earnings trend |
+| Gross margin | Competitive structure |
+| Net income growth | Growth |
+| Cash flow / net income | Earnings quality |
 
-### 资金流比较
+### Fund-flow comparison
 
-| 指标 | 数据源 | 信号 |
+| Metric | Data source | Signal |
 |------|--------|------|
-| 北向资金净流入 | 沪深港通 | 外资偏好，领先1-3个月 |
-| 融资余额变化 | 融资融券 | 杠杆资金方向 |
-| ETF净申购 | 基金数据 | 机构配置方向 |
-| 大宗交易 | 交易所 | 机构调仓信号 |
+| Institutional 13F position changes | SEC EDGAR | Institutional preference, quarterly lag |
+| Margin debt change | FINRA | Direction of leveraged money |
+| ETF net creations/redemptions | Fund data | Institutional and retail allocation direction |
+| Block trades / dark-pool volume | Exchange / FINRA TRF | Institutional repositioning signal |
 
-## 输出格式
+## Output Format
 
 ```markdown
-## 行业轮动分析
+## Sector Rotation Analysis
 
-### 景气度排名 Top 10
-| 排名 | 行业 | 景气度 | 变化 | 核心逻辑 |
+### Prosperity ranking Top 10
+| Rank | Sector | Prosperity | Change | Core thesis |
 |------|------|--------|------|---------|
-| 1 | 电子 | 85 | ↑+8 | AI算力需求爆发 |
-| 2 | 汽车 | 80 | ↑+5 | 出口+新能源双轮驱动 |
+| 1 | Information Technology | 85 | ↑+8 | AI compute demand surge |
+| 2 | Industrials | 80 | ↑+5 | Reshoring + infrastructure capex |
 | ... | ... | ... | ... | ... |
 
-### 行业配置建议
-| 配置 | 行业 | 权重建议 | 核心逻辑 |
+### Sector allocation recommendation
+| Stance | Sectors | Suggested weight | Core thesis |
 |------|------|---------|---------|
-| 超配 | 电子、汽车、通信 | 各10-15% | 景气上行+政策催化 |
-| 标配 | 食品饮料、医药 | 各5-8% | 防御属性，估值合理 |
-| 低配 | 地产、建材 | 各0-3% | 景气下行，政策效果待观察 |
+| Overweight | Information Technology, Industrials, Communication Services | 10-15% each | Rising prosperity + policy catalysts |
+| Neutral | Consumer Staples, Health Care | 5-8% each | Defensive, reasonable valuation |
+| Underweight | Real Estate, Materials | 0-3% each | Falling prosperity, policy effect uncertain |
 
-### 产业链机会
-- **AI产业链**: 算力(上游)→模型(中游)→应用(下游)，当前上游最确定
-- **新能源车**: 碳酸锂价格见底，电池环节盈利修复预期
+### Supply-chain opportunities
+- **AI chain**: compute (upstream) → models (mid) → applications (downstream); upstream is the highest-conviction link today
+- **EVs**: lithium carbonate price bottoming, battery-cell margin recovery expected
 
-### 风险提示
+### Risks
 - ...
 ```
 
-## 注意事项
+## Notes
 
-1. **周期股估值陷阱**：低PE可能是盈利顶点（如2021年煤炭PE仅5x但是顶部），用PB更安全
-2. **政策变量权重大**：A股行业轮动受政策驱动明显（集采、碳中和、AI），政策拐点>基本面拐点
-3. **主题投资干扰**：短期主题炒作（如AI概念）会扭曲行业动量信号，注意区分主题 vs 景气
-4. **数据滞后**：财报数据滞后1-2个月，高频数据（PMI/开工率/价格）更及时
-5. **行业ETF替代**：建议用行业ETF代码而非个股实现行业配置，降低个股风险
-6. **轮动频率**：行业轮动不宜太频繁，月度/季度调仓为宜
+1. **Cyclical valuation trap**: a low P/E may mark peak earnings (e.g., Energy traded near 5x in 2022 at the top of the cycle); P/B is safer
+2. **Policy carries heavy weight**: sector rotation is strongly driven by Fed policy, fiscal programs (IRA / CHIPS), and regulation; policy inflections matter more than fundamental inflections
+3. **Theme distortion**: short-term theme chasing (e.g., AI concept names) distorts sector momentum signals; distinguish themes from genuine prosperity
+4. **Data lag**: financial statements lag by 1-2 months; high-frequency data (PMI / utilization / prices) is more timely
+5. **Prefer sector ETFs**: implement sector allocation with sector ETF tickers (XLK, XLE, etc.) rather than single stocks to reduce idiosyncratic risk
+6. **Rotation frequency**: do not rotate too often; monthly or quarterly rebalancing is appropriate
+
+## China market notes
+
+For A-shares, use the Shenwan (SW) industry classification (31 level-1 industries) in place of GICS. Representative groupings and ETF codes: upstream cyclicals (coal, non-ferrous metals, oil & petrochemicals, steel, basic chemicals; coal ETF 515220), midstream manufacturing (power equipment, machinery, defense, autos; new-energy ETF 516160), downstream consumer (food & beverage, home appliances, pharma & biotech, beauty care; consumer ETF 510150), TMT (electronics, computers, telecom, media; tech ETF 515000), financials & real estate (banks, non-bank financials, real estate; financials ETF 510230), utilities (utilities, transportation, environmental; dividend ETF 510880). A-share fund-flow proxies: northbound net inflow via Stock Connect (foreign preference, leads by 1-3 months), margin-financing balance, ETF net subscriptions, and block trades. Policy variables are especially dominant in A-shares (centralized drug procurement, carbon neutrality, semiconductor localization); the 2021 coal sector (P/E ~5x at the top) is the classic cyclical valuation trap.

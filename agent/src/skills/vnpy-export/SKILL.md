@@ -42,7 +42,7 @@ vnpy uses the same `CtaTemplate` base class for all asset types, but parameter c
 
 | Asset Class | Instrument Example | `vt_symbol` Format | Position Unit |
 |-------------|-------------------|---------------------|---------------|
-| A-share stock | Ping An Bank | `000001.SZSE` | shares (整手, min 100) |
+| A-share stock | Ping An Bank | `000001.SZSE` | shares (round lots, min 100) |
 | Futures | IF2406 | `IF2406.CFFEX` | lots |
 | Crypto | BTC/USDT | `BTC/USDT.BINANCE` | coin units |
 

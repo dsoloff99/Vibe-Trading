@@ -16,7 +16,7 @@ AKShare is a completely free, open-source Python financial data library. No regi
 ```python
 import akshare as ak
 
-# A-share daily OHLCV (前复权)
+# A-share daily OHLCV (forward-adjusted, qfq)
 df = ak.stock_zh_a_hist(symbol="000001", period="daily",
                          start_date="20240101", end_date="20260101", adjust="qfq")
 
@@ -62,20 +62,20 @@ AKShare returns Chinese column names by default:
 
 | Chinese | English | Description |
 |---------|---------|-------------|
-| 日期 | date | Trade date |
-| 开盘 | open | Open price |
-| 最高 | high | High price |
-| 最低 | low | Low price |
-| 收盘 | close | Close price |
-| 成交量 | volume | Volume |
-| 成交额 | amount | Turnover |
-| 涨跌幅 | pct_change | % change |
-| 换手率 | turnover_rate | Turnover rate |
+| `日期` (date) | date | Trade date |
+| `开盘` (open) | open | Open price |
+| `最高` (high) | high | High price |
+| `最低` (low) | low | Low price |
+| `收盘` (close) | close | Close price |
+| `成交量` (volume) | volume | Volume |
+| `成交额` (amount) | amount | Turnover |
+| `涨跌幅` (pct change) | pct_change | % change |
+| `换手率` (turnover rate) | turnover_rate | Turnover rate |
 
 ## Date Format
 
 - Input: `YYYYMMDD` string (e.g. `"20240101"`)
-- Output: `日期` column as string, convert with `pd.to_datetime()`
+- Output: `日期` (date) column as string, convert with `pd.to_datetime()`
 
 ## Symbol Format
 

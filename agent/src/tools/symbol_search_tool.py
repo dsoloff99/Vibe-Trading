@@ -142,7 +142,7 @@ class SymbolSearchTool(BaseTool):
                 "type": "string",
                 "description": (
                     "Free-text company name or ticker fragment to resolve, e.g. "
-                    "'apple', '贵州茅台', '茅台', 'AAPL', '00700'. Chinese and "
+                    "'apple', 'Kweichow Moutai', 'AAPL', '00700'. Chinese and "
                     "English both accepted."
                 ),
             },

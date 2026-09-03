@@ -59,9 +59,9 @@ decision rests on.
 | Debt cycle & uncorrelated bets (Dalio) | Macro / allocation | Rates, currency, liquidity regime; portfolio shape | Stock picking | [dalio-debt-cycle](references/dalio-debt-cycle.md)                 |
 | Forensic short (Chanos) | Short / accounting | Accounting distortion, value traps, structural decline | Longs; anything you must be right about *soon* | [chanos-forensic-short](references/chanos-forensic-short.md)                 |
 | Cost drag & mean reversion (Bogle) | Allocation / cost | Whether the *activity itself* is worth its cost | Individual security selection | [bogle-cost-drag](references/bogle-cost-drag.md)                 |
-| Right business, right people (Duan Yongping / 段永平) | Quality / concentration | Founder-led A-share, HK and US-listed China names | Diversified baskets; turnarounds | [duan-right-business](references/duan-right-business.md)                 |
-| Weak-system contrarian (Feng Liu / 冯柳) | Contrarian / positioning | A-share names beaten down by known bad news | Momentum regimes; names with unresolved fraud risk | [fengliu-weak-system](references/fengliu-weak-system.md)                 |
-| Three questions (Qiu Guolu / 邱国鹭) | Value / industry structure | A-share and HK industry structure and pricing power | Early-stage, structure-not-yet-formed industries | [qiuguolu-three-questions](references/qiuguolu-three-questions.md)                 |
+| Right business, right people (Duan Yongping) | Quality / concentration | Founder-led A-share, HK and US-listed China names | Diversified baskets; turnarounds | [duan-right-business](references/duan-right-business.md)                 |
+| Weak-system contrarian (Feng Liu) | Contrarian / positioning | A-share names beaten down by known bad news | Momentum regimes; names with unresolved fraud risk | [fengliu-weak-system](references/fengliu-weak-system.md)                 |
+| Three questions (Qiu Guolu) | Value / industry structure | A-share and HK industry structure and pricing power | Early-stage, structure-not-yet-formed industries | [qiuguolu-three-questions](references/qiuguolu-three-questions.md)                 |
 
 ## Choosing a lens
 

@@ -1,4 +1,4 @@
-"""Lockup-expiry (限售解禁) tool backed by the Eastmoney datacenter API.
+"""Lockup-expiry tool backed by the Eastmoney datacenter API.
 
 Chinese A-share restricted shares come off lockup on scheduled dates; a large
 upcoming unlock can pressure a stock as newly tradable supply hits the market.
@@ -220,7 +220,7 @@ def _fetch_lockups(code: str | None, horizon_days: int) -> list[dict]:
 
 
 def get_lockup_expiry(code: str | None, horizon_days: int) -> str:
-    """Query A-share lockup-expiry (限售解禁) data from Eastmoney.
+    """Query A-share lockup-expiry data from Eastmoney.
 
     Args:
         code: A-share symbol (``"600519"`` or ``"600519.SH"``); ``None`` or
@@ -280,11 +280,11 @@ def get_lockup_expiry(code: str | None, horizon_days: int) -> str:
 
 
 class LockupExpiryTool(BaseTool):
-    """Surface Chinese A-share restricted-share unlock (限售解禁) schedules."""
+    """Surface Chinese A-share restricted-share unlock schedules."""
 
     name = "get_lockup_expiry"
     description = (
-        "Fetch Chinese A-share lockup-expiry (restricted-share unlock, 限售解禁) "
+        "Fetch Chinese A-share lockup-expiry (restricted-share unlock) "
         "data from Eastmoney. Pass a 6-digit A-share code (e.g. '600519' or "
         "'600519.SH') to get that stock's full historical unlock schedule, or "
         "omit the code to get a market-wide calendar of upcoming unlocks within "

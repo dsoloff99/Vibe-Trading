@@ -15,7 +15,7 @@ Start a goal when the task has any of these traits:
 - It needs multiple criteria before a conclusion is credible.
 - It compares strategies, assets, regimes, or evidence sources.
 - It may continue across turns or require a final audit.
-- The user asks for "long driven task", "goal", "审计", "对比", "研究结论", or similar.
+- The user asks for "long driven task", "goal", "audit", "compare", "research conclusion", or similar.
 
 Do not start a goal for a tiny one-shot answer unless the user explicitly asks.
 

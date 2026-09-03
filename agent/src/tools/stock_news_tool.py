@@ -45,7 +45,7 @@ _EM_SUFFIXES = ("SH", "SZ", "BJ")
 _YAHOO_SUFFIXES = ("US", "HK")
 
 # Default broad-market query used when ``scope='global'`` carries no code.
-_GLOBAL_QUERY = "财经"
+_GLOBAL_QUERY = "stock market"
 
 # Bounds so a noisy upstream can never return an unbounded payload.
 _DEFAULT_LIMIT = 20
@@ -312,7 +312,7 @@ class StockNewsTool(BaseTool):
         return self._run_stock(kwargs.get("code"), limit)
 
     def _run_global(self, limit: int) -> str:
-        """Fetch broad China-market headlines from Eastmoney.
+        """Fetch broad-market headlines from Yahoo's search-news surface.
 
         Args:
             limit: Maximum number of headlines.
@@ -321,12 +321,12 @@ class StockNewsTool(BaseTool):
             A success or error JSON envelope.
         """
         try:
-            articles = _fetch_eastmoney_news(_GLOBAL_QUERY, limit)
+            articles = _fetch_yahoo_news(_GLOBAL_QUERY, limit)
         except Exception as exc:  # noqa: BLE001 - surface any fetch failure as envelope
             logger.warning("global news fetch failed: %s", exc)
-            return self._error(f"eastmoney news fetch failed: {exc}")
+            return self._error(f"yahoo news fetch failed: {exc}")
         return self._ok(
-            "global", "eastmoney", {"scope": "global", "articles": articles}
+            "global", "yahoo", {"scope": "global", "articles": articles}
         )
 
     def _run_stock(self, code_arg: Any, limit: int) -> str:

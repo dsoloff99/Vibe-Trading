@@ -625,7 +625,7 @@ class TradeJournalTool(BaseTool):
     name = "analyze_trade_journal"
     description = (
         "Analyze a user's trade journal (CSV/Excel broker export). "
-        "Parses 同花顺/东方财富/富途/generic formats. Returns: "
+        "Parses Tonghuashun/Eastmoney/Futu/generic CSV formats (Schwab, Fidelity, IBKR, Robinhood exports). Returns: "
         "(1) trading profile — holding days, frequency, win rate, PnL ratio, "
         "top symbols, market/hourly distribution; "
         "(2) behavior diagnostics — disposition effect, overtrading, chasing "

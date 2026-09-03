@@ -1,273 +1,334 @@
 ---
 name: sentiment-analysis
-description: 市场情绪分析——恐贪指数/Put-Call Ratio/融资融券/北向资金信号解读、社交媒体舆情量化框架
+description: Market sentiment analysis using contrarian indicators (CNN Fear & Greed, VIX, put/call ratio, AAII survey, NAAIM exposure, FINRA margin debt, crypto Fear & Greed, social-media sentiment, with A-share margin-financing and Northbound flow notes); use it when the user asks whether the market is fearful or greedy, how crowded positioning is, or how to size positions based on sentiment.
 category: analysis
 ---
 
-# 市场情绪分析
+# Market Sentiment Analysis
 
-## 概述
+## Overview
 
-量化市场情绪，将主观的"贪婪与恐惧"转化为可衡量的指标。覆盖恐贪指数、期权情绪、杠杆资金、外资流向和社交舆情五大维度。情绪指标常作为反向指标使用。
+Quantify market sentiment by turning subjective "greed and fear" into measurable indicators. Covers five dimensions: fear & greed indices, options sentiment, leveraged money, fund flows/positioning, and social-media sentiment. Sentiment indicators are usually used as contrarian signals.
 
-## 恐贪指数
+## Fear & Greed Indices
 
-### 加密恐贪指数（Crypto Fear & Greed Index）
+### CNN Fear & Greed Index (US equities)
 
 ```
-分值范围: 0-100
+Score range: 0-100
 
-| 分值 | 情绪状态 | 历史信号 |
+| Score | Sentiment | Historical signal |
 |------|---------|---------|
-| 0-20 | 极度恐惧 | 底部区域（逆向买入）|
-| 20-40 | 恐惧 | 偏底部 |
-| 40-60 | 中性 | 观望 |
-| 60-80 | 贪婪 | 偏顶部 |
-| 80-100 | 极度贪婪 | 顶部区域（逆向卖出）|
+| 0-25 | Extreme fear | Bottom zone (contrarian buy) |
+| 25-45 | Fear | Near a bottom |
+| 45-55 | Neutral | Wait |
+| 55-75 | Greed | Near a top |
+| 75-100 | Extreme greed | Top zone (contrarian trim) |
 
-构成因子:
-- 波动率 (25%): BTC 30天/90天波动率
-- 市场动量 (25%): BTC价格 vs MA(30/90)
-- 社交媒体 (15%): Twitter/Reddit情绪词频
-- 调查 (15%): 投资者调查
-- 比特币市占率 (10%): BTC Dominance
-- Google趋势 (10%): "Bitcoin"搜索热度
+Seven components (equal-weighted):
+- Market momentum: S&P 500 vs its 125-day moving average
+- Stock price strength: NYSE 52-week highs vs lows
+- Stock price breadth: McClellan Volume Summation Index
+- Put/call ratio: CBOE 5-day average put/call
+- Market volatility: VIX vs its 50-day moving average
+- Safe-haven demand: 20-day stock vs Treasury return spread
+- Junk-bond demand: high-yield vs investment-grade credit spread
 ```
 
-### A股恐贪指标
+### VIX (CBOE Volatility Index)
 
-A股没有统一的恐贪指数，用以下组合替代：
+| VIX level | Regime | Signal |
+|------|--------|---------|
+| < 12 | Complacency | Cheap hedges; watch for shocks |
+| 12-20 | Normal | No sentiment signal |
+| 20-30 | Elevated | Fear building; start scaling in |
+| 30-40 | Fear | Historically strong forward returns |
+| > 40 | Panic | Capitulation zone (2008, 2020) |
 
-| 指标 | 数据源 | 极度恐惧 | 极度贪婪 |
+Term structure: VIX above 3-month VIX futures (backwardation) = acute stress; contango = calm.
+
+### Crypto Fear & Greed Index
+
+```
+Score range: 0-100
+
+| Score | Sentiment | Historical signal |
+|------|---------|---------|
+| 0-20 | Extreme fear | Bottom zone (contrarian buy) |
+| 20-40 | Fear | Near a bottom |
+| 40-60 | Neutral | Wait |
+| 60-80 | Greed | Near a top |
+| 80-100 | Extreme greed | Top zone (contrarian sell) |
+
+Components:
+- Volatility (25%): BTC 30-day / 90-day volatility
+- Market momentum (25%): BTC price vs MA(30/90)
+- Social media (15%): Twitter/Reddit sentiment word frequency
+- Surveys (15%): investor polls
+- Bitcoin dominance (10%): BTC share of total market cap
+- Google Trends (10%): "Bitcoin" search interest
+```
+
+### A-share Fear & Greed Proxies (China notes)
+
+The A-share market has no single fear & greed index; use this combination instead:
+
+| Indicator | Source | Extreme fear | Extreme greed |
 |------|--------|---------|---------|
-| 上证换手率 | 交易所 | <0.5% | >2.5% |
-| 涨停家数/跌停家数 | 行情数据 | <0.3 | >5.0 |
-| 新增开户数(周) | 中登 | <20万 | >100万 |
-| 融资余额变化(月) | 交易所 | 净流出>500亿 | 净流入>1000亿 |
-| ETF净申购 | 基金数据 | 宽基ETF净申购（抄底）| 净赎回（获利了结）|
+| Shanghai Composite turnover | Exchange | <0.5% | >2.5% |
+| Limit-up / limit-down count ratio | Market data | <0.3 | >5.0 |
+| New brokerage accounts (weekly) | CSDC | <200k | >1M |
+| Margin balance change (monthly) | Exchange | Net outflow >CNY 50B | Net inflow >CNY 100B |
+| ETF net creations | Fund data | Broad-index ETF net creations (dip buying) | Net redemptions (profit taking) |
 
-### 恐贪指数使用方法
-
-```
-核心原则: 别人恐惧时贪婪，别人贪婪时恐惧
-
-实操:
-1. 极度恐惧（<20）: 分批建仓信号
-   - 不要一次性全仓，分3-5批
-   - 确认有基本面支撑（不是暴雷导致的恐惧）
-
-2. 极度贪婪（>80）: 逐步减仓信号
-   - 不要做空（趋势可能持续）
-   - 减仓到安全水位（如从80%仓位降到50%）
-
-3. 中性区间: 情绪指标失效，看其他因素
-```
-
-## Put-Call Ratio
-
-### 定义与解读
+### How to Use Fear & Greed Readings
 
 ```
-Put-Call Ratio = Put期权成交量 / Call期权成交量
+Core principle: be greedy when others are fearful, fearful when others are greedy
 
-| PCR | 含义 | 信号（反向指标）|
+In practice:
+1. Extreme fear (<25): scale-in signal
+   - Do not go all in at once; buy in 3-5 tranches
+   - Confirm fundamentals are intact (fear from a crash, not from a blow-up)
+
+2. Extreme greed (>75): scale-out signal
+   - Do not short (the trend can persist)
+   - Trim to a safe level (e.g. from 80% invested down to 50%)
+
+3. Neutral zone: sentiment carries no edge; look at other factors
+```
+
+## Put/Call Ratio
+
+### Definition and Interpretation
+
+```
+Put/Call Ratio = put option volume / call option volume
+
+| PCR | Meaning | Signal (contrarian) |
 |-----|------|----------------|
-| > 1.5 | 极度看空情绪 | 看多（恐惧过度）|
-| 1.0-1.5 | 偏空 | 偏多 |
-| 0.7-1.0 | 中性 | 无明确信号 |
-| 0.5-0.7 | 偏多 | 偏空 |
-| < 0.5 | 极度看多情绪 | 看空（贪婪过度）|
+| > 1.5 | Extreme bearishness | Bullish (excess fear) |
+| 1.0-1.5 | Bearish lean | Mildly bullish |
+| 0.7-1.0 | Neutral | No clear signal |
+| 0.5-0.7 | Bullish lean | Mildly bearish |
+| < 0.5 | Extreme bullishness | Bearish (excess greed) |
 ```
 
-### 不同市场PCR参考
+### PCR Reference Ranges by Market
 
-| 市场 | 数据源 | 正常范围 | 极端区间 |
+| Market | Source | Normal range | Extreme zone |
 |------|--------|---------|---------|
-| 美股（CBOE） | VIX期权 | 0.7-1.2 | <0.5 或 >1.5 |
-| A股（上证50ETF） | 上交所 | 0.5-1.5 | <0.3 或 >2.0 |
-| BTC（Deribit） | Deribit | 0.3-0.8 | <0.2 或 >1.2 |
+| US (CBOE total put/call) | CBOE | 0.7-1.2 | <0.5 or >1.5 |
+| US (CBOE equity-only put/call) | CBOE | 0.5-0.8 | <0.4 or >1.0 |
+| A-share (SSE 50 ETF options) | SSE | 0.5-1.5 | <0.3 or >2.0 |
+| BTC (Deribit) | Deribit | 0.3-0.8 | <0.2 or >1.2 |
 
-### PCR与VIX配合使用
-
-```
-PCR高 + VIX高 = 极度恐慌（强烈看多反转信号）
-PCR低 + VIX低 = 极度自满（警惕黑天鹅）
-PCR高 + VIX低 = 对冲需求（机构在保护多头）
-PCR低 + VIX高 = 矛盾信号（需要更多确认）
-```
-
-## 融资融券信号（A股）
-
-### 融资余额分析
+### Combining PCR with VIX
 
 ```
-融资 = 借钱买股（看多杠杆）
-融券 = 借股卖出（看空杠杆）
-
-融资余额指标:
-- 绝对值: 反映杠杆资金总量（2024年约1.5-1.8万亿）
-- 变化率: 周环比/月环比，方向比绝对值重要
-- 占比: 融资余额/A股总市值，通常2-3%
+High PCR + high VIX = extreme panic (strong contrarian buy / reversal signal)
+Low PCR + low VIX = extreme complacency (watch for black swans)
+High PCR + low VIX = hedging demand (institutions protecting longs)
+Low PCR + high VIX = conflicting signal (needs more confirmation)
 ```
 
-### 融资融券信号
+## Leverage Signals
 
-| 指标 | 看多信号 | 看空信号 |
+### FINRA Margin Debt (US)
+
+```
+Margin debt = money borrowed against brokerage accounts to buy securities (bullish leverage)
+Published monthly by FINRA (about 3 weeks after month-end)
+
+Margin-debt indicators:
+- Level: total leverage in the system (roughly $800-900B in 2024; peak ~$935B in Oct 2021)
+- Rate of change: YoY and 3-month change matter more than the level
+- Ratio: margin debt / total US market cap, typically 1.5-2.5%
+- Free credit balances: cash sitting in accounts (dry powder); negative net worth (debt > cash) = stretched
+```
+
+### Margin-Debt Signals
+
+| Indicator | Bullish signal | Bearish signal |
 |------|---------|---------|
-| 融资余额 | 底部企稳后连续增加 | 高位加速增加（过热） |
-| 融资净买入 | 连续5天净买入 | 连续5天净卖出 |
-| 融券余额 | 大幅增加后减少（空头回补） | 突然大增（有人做空） |
-| 融资/融券比 | 比值回落后反弹 | 极端高位（杠杆过高） |
+| Margin debt level | Stabilizes after a drawdown, then rises | Accelerates at highs (overheated) |
+| YoY change | Turns up from below -20% (deleveraging done) | > +50% YoY (preceded 2000, 2007, 2021 tops) |
+| Free credit balances | Rising while margin debt falls (cash build) | Falling toward zero while debt rises |
+| Debt / market cap | Falls back after a spike | Extreme highs (leverage too high) |
 
-### 融资余额历史阈值（A股）
-
-```
-2015年牛市顶部: 2.27万亿（极端）
-2018年熊市底部: 0.76万亿
-2020年正常区间: 1.0-1.2万亿
-2024年正常区间: 1.4-1.8万亿
-
-经验法则: 融资余额月增>10% → 过热警示
-          融资余额月减>10% → 恐慌警示
-```
-
-## 北向资金信号（A股）
-
-### 北向资金分析框架
+### Margin-Debt Historical Thresholds (US)
 
 ```
-北向资金 = 通过沪深港通买A股的外资
+2000 top: +80% YoY growth into the peak
+2007 top: +60% YoY growth into the peak
+2021 top: ~$935B, +70% YoY
+2022 bottom: about -25% YoY (deleveraging complete)
 
-核心特征:
-1. 规模: 累计净买入约2万亿
-2. 风格: 偏好白马（消费+金融+科技龙头）
-3. 前瞻性: 历史上多次在底部加仓
-4. 局限: 2023年后主动型vs被动型分化
+Rule of thumb: YoY growth > +50% -> overheating warning
+               YoY decline > -20% -> capitulation / bottoming signal
 ```
 
-### 北向资金信号
+### A-share Margin Financing (China notes)
 
-| 指标 | 看多信号 | 看空信号 |
+```
+Margin buying = borrowing cash to buy stock (bullish leverage)
+Securities lending = borrowing stock to sell (bearish leverage)
+
+Margin balance: about CNY 1.5-1.8T in 2024, typically 2-3% of total A-share market cap
+2015 bull-market top: CNY 2.27T (extreme); 2018 bear-market bottom: CNY 0.76T
+Rule of thumb: monthly change > +10% -> overheating; > -10% -> panic
+Signals: 5 consecutive days of net margin buying = bullish; sudden jump in securities-lending
+         balance = someone is shorting; margin data is published T+1
+```
+
+## Fund Flow and Positioning Signals
+
+### Investor Surveys and Manager Exposure (US)
+
+```
+AAII Investor Sentiment Survey (weekly, individual investors):
+  Long-run averages: bulls ~37.5%, bears ~31%, neutral ~31.5%
+  Contrarian extremes: bull-bear spread > +30 = excess optimism; < -30 = excess pessimism
+  Bears > 50% has historically preceded strong 6-12 month returns (2009, 2022)
+
+NAAIM Exposure Index (weekly, active managers' average equity exposure):
+  Range: -200 (fully leveraged short) to +200 (fully leveraged long)
+  > 90 = managers fully invested (little buying power left, crowded)
+  < 30 = defensive (cash on the sidelines, contrarian bullish)
+
+Other positioning data:
+  - CFTC Commitments of Traders: speculator net positioning in S&P 500 / Nasdaq futures
+  - ICI weekly fund flows: equity vs money-market fund flows
+  - BofA Global Fund Manager Survey: cash level > 5% = "buy" signal, < 4% = "sell" signal
+```
+
+### Positioning Signals
+
+| Indicator | Bullish signal | Bearish signal |
 |------|---------|---------|
-| 单日净流入 | >100亿（强烈信号） | <-100亿 |
-| 连续流入天数 | >10天连续流入 | >10天连续流出 |
-| 月度净流入 | >500亿 | <-500亿 |
-| 持仓变化 | 增持低估值白马 | 减持周期+概念股 |
+| AAII bull-bear spread | < -30 (extreme pessimism) | > +30 (extreme optimism) |
+| NAAIM exposure | < 30 for 2+ weeks | > 90 (fully invested) |
+| Money-market fund assets | Record highs (sidelined cash) | Sharp outflows into equities |
+| Fund manager cash | > 5% | < 4% |
 
-### 北向资金使用注意
-
-```
-2023年后变化:
-1. 被动资金(ETF)占比上升，主动选股参考价值下降
-2. 单日大额波动可能是对冲交易（非方向性）
-3. "假外资"（内地资金绕道香港）干扰信号
-
-建议:
-- 看周度/月度累计，忽略单日波动
-- 区分主动型vs被动型（有些数据源可拆分）
-- 与融资余额、ETF申赎交叉验证
-```
-
-## 社交媒体舆情分析
-
-### 舆情量化框架
+### Northbound Flows (China notes)
 
 ```
-数据源:
-- 中文: 雪球/东方财富股吧/微博/微信公众号
-- 英文: Twitter(X)/Reddit/Telegram
-- 加密: CryptoTwitter/Discord/Telegram群
+Northbound flows = foreign money buying A-shares through Shanghai/Shenzhen-Hong Kong Stock Connect
 
-量化维度:
-1. 讨论热度: 提及频次 / 基准频次
-2. 情绪倾向: 正面/负面/中性比例
-3. 情绪强度: 正面均值 - 负面均值
-4. 情绪变化: 较上期的变化方向
+Key features:
+1. Size: cumulative net buying of roughly CNY 2T
+2. Style: favors blue chips (consumer, financial and tech leaders)
+3. Leading tendency: has historically added at market bottoms
+4. Limitation: since 2023, passive (ETF) flows dominate, so stock-picking signal has weakened
+
+Signals: daily net inflow > CNY 10B (strong) / < -CNY 10B; > 10 consecutive days of inflows or outflows;
+         monthly net > CNY 50B / < -CNY 50B
+Caveats: hedging trades and "fake foreign" money (mainland capital routed via HK) distort daily prints;
+         disclosure rules changed in 2023, so use weekly/monthly totals and cross-check with margin balances and ETF flows
 ```
 
-### 舆情指标
+## Social-Media Sentiment Analysis
 
-| 指标 | 计算 | 反向信号 |
+### Sentiment Quantification Framework
+
+```
+Data sources:
+- English: Twitter (X) / Reddit (r/wallstreetbets, r/stocks) / StockTwits / Telegram
+- Chinese: Xueqiu / Eastmoney Guba / Weibo / WeChat public accounts
+- Crypto: Crypto Twitter / Discord / Telegram groups
+
+Quantified dimensions:
+1. Discussion heat: mention frequency / baseline frequency
+2. Sentiment polarity: share of positive / negative / neutral posts
+3. Sentiment intensity: mean positive score - mean negative score
+4. Sentiment change: direction of change versus the prior period
+```
+
+### Sentiment Indicators
+
+| Indicator | Calculation | Contrarian signal |
 |------|------|---------|
-| 热度指数 | 搜索量/讨论量 vs MA(30) | 热度暴增=过热 |
-| 看多比例 | 看多帖子/总帖子 | >80%=极度乐观(警惕) |
-| 新人指数 | 新注册账号讨论占比 | >50%=散户涌入(顶部) |
-| KOL一致性 | 大V观点一致度 | 一致看多=危险 |
+| Heat index | Search / discussion volume vs MA(30) | Spike in heat = overheated |
+| Bullish share | Bullish posts / total posts | >80% = extreme optimism (warning) |
+| Newcomer index | Share of posts from newly created accounts | >50% = retail rush (top) |
+| Influencer consensus | Agreement among large accounts | Unanimous bullishness = danger |
 
-### 社交媒体情绪周期
-
-```
-底部: 无人讨论 → 少数人抄底 → 争议期
-上涨: 讨论增加 → 乐观蔓延 → 新人涌入
-顶部: 全民讨论 → 极度乐观 → 不看好者被嘲笑
-下跌: 争议 → 恐慌 → 无人讨论（回到底部）
-
-巴菲特指标: 出租车司机/理发师开始讨论股票 = 顶部
-```
-
-## 综合情绪评分框架
-
-### 评分模型
+### Social-Media Sentiment Cycle
 
 ```
-综合情绪 = 0.25×恐贪 + 0.20×PCR + 0.20×融资 + 0.20×北向 + 0.15×舆情
+Bottom: nobody talks -> a few contrarians buy -> controversy phase
+Rally: discussion grows -> optimism spreads -> newcomers pile in
+Top: everyone talks -> extreme optimism -> skeptics get mocked
+Decline: controversy -> panic -> nobody talks (back to bottom)
 
-每个维度标准化到 0-100:
-0-20: 极度恐惧
-20-40: 恐惧
-40-60: 中性
-60-80: 贪婪
-80-100: 极度贪婪
+Cocktail-party indicator: when your Uber driver or barber starts recommending stocks = top
 ```
 
-### 情绪 → 操作映射
+## Composite Sentiment Scoring Framework
 
-| 综合情绪 | 仓位建议 | 操作 |
+### Scoring Model
+
+```
+Composite sentiment = 0.25×Fear&Greed + 0.20×PCR/VIX + 0.20×Leverage + 0.20×Positioning + 0.15×Social
+
+Each dimension is normalized to 0-100:
+0-20: extreme fear
+20-40: fear
+40-60: neutral
+60-80: greed
+80-100: extreme greed
+```
+
+### Sentiment to Action Mapping
+
+| Composite sentiment | Suggested exposure | Action |
 |---------|---------|------|
-| 0-20 | 80-100% | 逆向满仓 |
-| 20-40 | 60-80% | 逐步加仓 |
-| 40-60 | 40-60% | 标准仓位 |
-| 60-80 | 20-40% | 逐步减仓 |
-| 80-100 | 0-20% | 逆向清仓 |
+| 0-20 | 80-100% | Contrarian full position |
+| 20-40 | 60-80% | Scale in gradually |
+| 40-60 | 40-60% | Standard position |
+| 60-80 | 20-40% | Scale out gradually |
+| 80-100 | 0-20% | Contrarian exit |
 
-## 输出格式
+## Output Format
 
 ```markdown
-## 市场情绪分析
+## Market Sentiment Analysis
 
-### 情绪仪表盘
-| 指标 | 当前值 | 分位 | 信号 |
+### Sentiment Dashboard
+| Indicator | Current | Percentile | Signal |
 |------|--------|------|------|
-| 恐贪指数(加密) | 72 | 75% | 贪婪 |
-| A股换手率 | 1.8% | 70% | 偏活跃 |
-| PCR(50ETF) | 0.65 | 35% | 偏乐观 |
-| 融资余额变化(周) | +280亿 | 80% | 杠杆加速 |
-| 北向净流入(周) | +120亿 | 60% | 偏正面 |
+| CNN Fear & Greed | 72 | 75% | Greed |
+| VIX | 13.5 | 20% | Complacent |
+| CBOE equity put/call | 0.55 | 25% | Optimistic |
+| FINRA margin debt (YoY) | +28% | 80% | Leverage accelerating |
+| AAII bull-bear spread | +22 | 70% | Optimistic |
+| NAAIM exposure | 92 | 85% | Fully invested |
 
-### 综合情绪评分: 68/100（贪婪区间）
+### Composite Sentiment Score: 68/100 (greed zone)
 
-### 情绪解读
-当前市场情绪偏贪婪，多个指标指向乐观:
-- 融资余额加速增长，杠杆资金积极
-- 北向资金持续流入，外资态度正面
-- 但PCR偏低，期权市场缺乏对冲意识
+### Interpretation
+Sentiment is tilted toward greed, with several indicators pointing to optimism:
+- Margin debt is growing quickly; leveraged money is aggressive
+- Active managers are fully invested; little sidelined buying power remains
+- The put/call ratio is low; the options market is not hedging
 
-### 操作建议
-- 建议仓位: 降至40-50%
-- 不追高，等回调再加仓
-- 可适当买入看跌期权对冲
+### Suggested Actions
+- Suggested exposure: reduce to 40-50%
+- Do not chase; wait for a pullback before adding
+- Consider buying put protection while VIX is cheap
 
-### 风险提示
-- 情绪指标是反向指标，不是精确择时工具
-- 趋势强时情绪可以持续极端很久
+### Risk Notes
+- Sentiment indicators are contrarian, not precise timing tools
+- In a strong trend, sentiment can stay extreme for a long time
 ```
 
-## 注意事项
+## Notes
 
-1. **反向指标不是精确择时**：情绪可以在极端区域持续很久，不要仅凭情绪做空/做多
-2. **情绪+趋势结合**：上升趋势中的贪婪是正常的，下降趋势中的恐惧也是正常的
-3. **不同市场不同阈值**：A股、美股、加密的情绪阈值差异大
-4. **数据获取限制**：部分情绪数据需要付费API（如Bloomberg情绪指标、Glassnode）
-5. **社交媒体噪音大**：机器人/营销号会干扰舆情分析，需要过滤
-6. **北向资金变化**：2023年后北向数据披露规则变化，实时数据不如以前透明
-7. **融资数据T+1**：融资融券数据为T+1日公布，有滞后
+1. **Contrarian is not precise timing**: sentiment can stay in extreme zones for a long time; never short or go long on sentiment alone
+2. **Combine sentiment with trend**: greed in an uptrend is normal, and fear in a downtrend is normal
+3. **Different markets, different thresholds**: sentiment thresholds differ widely across US, A-share and crypto markets
+4. **Data access limits**: some sentiment data requires paid APIs (e.g. Bloomberg sentiment indicators, Glassnode)
+5. **Social media is noisy**: bots and promotional accounts distort sentiment analysis and must be filtered
+6. **Publication lags**: FINRA margin debt is monthly with a ~3-week lag; AAII/NAAIM are weekly; A-share margin data is published T+1
+7. **Northbound data changes**: A-share Northbound disclosure rules changed in 2023, so real-time data is less transparent than before

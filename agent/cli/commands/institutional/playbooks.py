@@ -194,7 +194,7 @@ _DCF = Playbook(
     slug="dcf",
     summary="Discounted cash flow valuation with sensitivity grid",
     usage="/dcf <ticker> [horizon=5] [wacc=9%] [g=2.5%]",
-    examples=("/dcf MSFT", "/dcf 600519.SH horizon=10 g=3%", "/dcf TSLA wacc=11%"),
+    examples=("/dcf MSFT", "/dcf COST.US horizon=10 g=3%", "/dcf TSLA wacc=11%"),
     ask="Which company should I value? Optionally pass horizon, wacc and terminal growth, e.g. /dcf MSFT horizon=5 wacc=9% g=2.5%.",
     objective=(
         "Produce an unlevered DCF: value per share, the terminal-value share of "
@@ -289,7 +289,7 @@ _ATTRIB = Playbook(
     examples=(
         "/attrib my portfolio --benchmark SPY --from 2026-01-01",
         "/attrib AAPL:0.3 MSFT:0.4 XOM:0.3 --benchmark SPY",
-        "/attrib holdings.csv --benchmark 000300.SH",
+        "/attrib holdings.csv --benchmark QQQ",
     ),
     ask="Which portfolio should I attribute, and against which benchmark? e.g. /attrib holdings.csv --benchmark SPY --from 2026-01-01",
     objective=(

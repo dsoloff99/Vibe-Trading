@@ -2,7 +2,7 @@
 
 Eastmoney publishes a free, no-auth capital-flow series that splits each bar's
 net inflow into main / large / medium / small-order buckets (the
-"主力/超大单/大单/中单/小单" decomposition). Two ``fflow`` endpoints serve it:
+"main / super-large / large / medium / small order" decomposition). Two ``fflow`` endpoints serve it:
 a daily history line and an intraday (minute) line. Both are addressed by the
 same ``secid`` scheme used for klines, so symbol resolution and HTTP throttling
 are delegated to :mod:`backtest.loaders.eastmoney_client` (every request routes
@@ -37,7 +37,7 @@ _DAILY_FIELDS = "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65"
 _MINUTE_FIELDS = "f51,f52,f53,f54,f55,f56"
 
 # Bucket labels in the order Eastmoney emits them after the leading timestamp:
-# main (主力净额), small, medium, large, super-large net inflow in CNY.
+# main (institutional net), small, medium, large, super-large net inflow in CNY.
 _BUCKETS = ("main", "small", "medium", "large", "super_large")
 
 # Defensive caps so a payload can never blow up the LLM context.
@@ -171,7 +171,7 @@ class FundFlowTool(BaseTool):
         "(in CNY), as daily history or the current session's per-minute line. Use "
         "this for one or more named stocks to gauge whether large/main-force money "
         "is flowing into or out of that specific symbol. NOT market-wide aggregate "
-        "flow (for Stock-Connect 北向 use get_northbound_flow). Markets: A-share "
+        "flow (for Stock-Connect northbound use get_northbound_flow). Markets: A-share "
         "(.SH/.SZ/.BJ), Hong Kong (.HK) and US (.US). Example: "
         '{"codes": ["600519.SH", "00700.HK"], "period": "daily", "days": 30}.'
     )

@@ -1081,6 +1081,19 @@ def _ensure_session_id(title: str, *, session_id: Optional[str] = None) -> str:
     return session.session_id
 
 
+
+def _cli_shell_tools_enabled() -> bool:
+    """Return whether the CLI may register shell tools (bash/background_run).
+
+    Shell tools are an explicit opt-in on every surface, the interactive CLI
+    included: the agent reads untrusted web pages, documents and news, and an
+    injected instruction must not be able to run commands as this user. Set
+    ``VIBE_TRADING_ENABLE_SHELL_TOOLS=1`` to enable them.
+    """
+    from src.config.accessor import get_env_config
+
+    return bool(get_env_config().api.vibe_trading_enable_shell_tools)
+
 def _run_agent(
     prompt: str,
     history: Optional[List[Dict]] = None,
@@ -1247,10 +1260,12 @@ def _run_agent(
         else:
             console.print(f"[yellow]WARNING:[/yellow] {msg}")
 
+    include_shell_tools = _cli_shell_tools_enabled()
+
     agent = AgentLoop(
         registry=build_registry(
             persistent_memory=pm,
-            include_shell_tools=True,
+            include_shell_tools=include_shell_tools,
             agent_config=agent_config,
             session_id=session_id or None,
             warn_callback=_mcp_warn,
@@ -2399,7 +2414,7 @@ def cmd_swarm_run_live(preset: str, vars_json: Optional[str] = None) -> Optional
             preset,
             user_vars,
             live_callback=dashboard.handle_event,
-            include_shell_tools=True,
+            include_shell_tools=_cli_shell_tools_enabled(),
         )
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
@@ -2451,7 +2466,7 @@ def cmd_swarm_retry_live(run_id: str, resume: bool = False) -> Optional[int]:
             reconciled.preset_name,
             reconciled.user_vars or {},
             live_callback=dashboard.handle_event,
-            include_shell_tools=True,
+            include_shell_tools=_cli_shell_tools_enabled(),
             resume_from=reconciled if resume else None,
         )
     except FileNotFoundError as exc:
@@ -5249,7 +5264,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--max-iter", dest="run_max_iter", type=int, default=50, help="Maximum agent iterations")
 
     serve_parser = subparsers.add_parser("serve", help="Start the API server")
-    serve_parser.add_argument("--host", default="0.0.0.0", help="Bind address")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Bind address (loopback by default; set API_AUTH_KEY before widening)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Listen port")
     serve_parser.add_argument("--dev", action="store_true", help="Start the Vite dev server")
 

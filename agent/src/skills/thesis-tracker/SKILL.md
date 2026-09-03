@@ -65,7 +65,7 @@ Break the thesis into verifiable assumptions (3-7 typically; too few = shallow t
 | 3 | Moat explicitly breached (competitor reaches parity) | Severe | Deep research, consider exit |
 | 4 | Regulatory change fundamentally alters the business model | Severe | Re-value intrinsic value |
 | 5 | Management large unplanned disposal | Warning | Investigate |
-| 6 | **Macro trend reversal for this name's end-market** — e.g. demographic clock (population decline) for consumer/property/education names; consumption downgrade (居民边际消费下降); generational shift away from the category | Severe | Re-evaluate the long-term demand base; for consumer-dependent names, this is often a slow-moving but fatal headwind — assess whether the thesis still holds at a structurally lower growth path |
+| 6 | **Macro trend reversal for this name's end-market** — e.g. demographic clock (population decline) for consumer/property/education names; consumption downgrade (falling marginal household spending); generational shift away from the category | Severe | Re-evaluate the long-term demand base; for consumer-dependent names, this is often a slow-moving but fatal headwind — assess whether the thesis still holds at a structurally lower growth path |
 
 > The red line on macro trends (demographic clock / consumption / generational) is deliberately explicit: a value-investing thesis that picks a consumer name without weighing population decline and consumption-trend headwinds is incomplete. For non-consumer names (e.g. pure B2B industrial), this red line may be loose; for consumer/retail/education/property names, weight it heavily.
 

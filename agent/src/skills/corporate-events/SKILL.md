@@ -1,267 +1,285 @@
 ---
 name: corporate-events
-description: 公司事件驱动分析：并购套利价差计算、大股东增减持信号、股权激励解读、定增配股影响评估、A股ST/退市预警
+description: Analyze corporate event-driven trades including merger arbitrage spread calculation, insider buying and selling signals from Form 4 filings, equity-compensation interpretation, secondary offering and buyback impact assessment, and delisting or going-concern risk warnings; use when evaluating an announced corporate action or building an event-driven strategy.
 category: flow
 ---
 
-# 公司事件驱动分析
+# Corporate Event-Driven Analysis
 
-## 概述
+## Overview
 
-通过公司层面的重大事件（并购、增减持、股权激励、再融资等）构建事件驱动交易策略。核心逻辑：事件公告包含增量信息，市场消化需要时间，事件前后存在系统性超额收益。
+Build event-driven trading strategies around major company-level events (M&A, insider transactions, equity compensation, secondary offerings and buybacks, etc.). Core logic: event announcements contain incremental information, the market takes time to digest it, and systematic excess returns exist around the event date.
 
-适用场景：
-- 并购重组套利（A股借壳/资产注入/吸收合并）
-- 大股东/高管增减持的信号提取
-- 股权激励的行权价与解锁条件分析
-- 定增/配股/可交债的折价套利
-- ST/*ST/退市预警的规避与投机
+Use cases:
+- Merger arbitrage (tender offers / definitive mergers / spin-offs)
+- Extracting signals from insider and major-holder transactions (Form 4, 13D/13G)
+- Analyzing exercise prices and vesting conditions of equity-compensation plans
+- Discount arbitrage in secondary offerings / PIPEs / convertible or exchangeable notes
+- Avoiding or speculating on delisting and going-concern warnings
 
-## 核心概念
+## Core Concepts
 
-### 并购套利（Merger Arbitrage）
+### Merger Arbitrage
 
-**A股并购特色**：
-| 类型 | 频率 | 超额收益 | 风险 |
+**Deal types in the US market**:
+| Type | Frequency | Excess return | Risk |
 |------|------|----------|------|
-| 借壳上市 | 低(注册制后减少) | 高(30-100%) | 极高(审批失败) |
-| 资产注入 | 中 | 中(10-30%) | 高(估值/审批) |
-| 吸收合并 | 低 | 低(5-15%) | 低(已达协议) |
-| 要约收购 | 低 | 低(3-8%) | 最低 |
+| Reverse merger / SPAC | Low (declined after 2021) | High (30-100%) | Very high (deal failure) |
+| Asset acquisition / carve-in | Medium | Medium (10-30%) | High (valuation / regulatory) |
+| Stock-for-stock merger | Medium | Low (5-15%) | Low (definitive agreement signed) |
+| Cash tender offer | Medium | Low (3-8%) | Lowest |
 
-**价差计算**：
+**Spread calculation**:
 ```
-并购套利价差 = (要约价 - 当前价) / 当前价
-年化收益 = 价差 / 预计完成时间(年)
+Merger arbitrage spread = (offer price - current price) / current price
+Annualized return = spread / expected time to close (years)
 
-示例:
-  A公司要约收购B公司, 要约价25元, B当前股价23.5元
-  价差 = (25 - 23.5) / 23.5 = 6.38%
-  预计3个月完成, 年化 = 6.38% × 4 = 25.5%
+Example:
+  Company A launches a tender offer for Company B at $25; B currently trades at $23.50
+  Spread = (25 - 23.5) / 23.5 = 6.38%
+  Expected close in 3 months, annualized = 6.38% × 4 = 25.5%
 
-风险评估:
-  审批确定性: 已获商务部/证监会预审 → 高确定性
-  对价方式: 现金 > 股票+现金 > 纯股票 (确定性递减)
-  交易条件: 是否有MAC条款(重大不利变化)
-```
-
-**A股并购套利要点**：
-- 停牌制度改革后，复牌首日涨跌幅受限（创业板/科创板20%）
-- 关注"筹划重大资产重组"公告 → 停牌 → 复牌的节奏
-- 审批链：董事会 → 股东大会 → 证监会（每一步都是风险点）
-
-### 分拆/Spin-off
-
-```
-A股分拆上市条件:
-  - 上市满3年
-  - 子公司净利润 ≥ 母公司净利润10%
-  - 子公司净资产 ≤ 母公司净资产30%
-
-交易策略:
-  预案公告 → 买入母公司（分拆预期提升估值）
-  子公司上市 → 择机卖出母公司（利好兑现）
-
-实例:
-  2023年某科技公司分拆子公司至科创板
-  预案公告后母公司20日涨幅18%
-  子公司上市首日后母公司回调8%
+Risk assessment:
+  Regulatory certainty: HSR clearance received / no FTC-DOJ second request / CFIUS cleared → high certainty
+  Consideration: cash > stock + cash > all-stock (decreasing certainty)
+  Deal terms: MAC clause (material adverse change), reverse termination fee, financing condition
 ```
 
-### 大股东增减持信号
+**US merger-arbitrage key points**:
+- Deals are announced via press release and Form 8-K with no trading halt, so the initial gap is priced within minutes
+- Watch the sequence "exploring strategic alternatives" → definitive agreement (8-K) → proxy / tender documents → close
+- Approval chain: board → shareholder vote → antitrust (HSR / FTC / DOJ) → CFIUS for foreign buyers (each step is a risk point)
 
-**增持信号**（看多）：
-| 信号强度 | 条件 | 超额收益(20日) |
+### Spin-offs
+
+```
+US spin-off mechanics:
+  - Form 10 registration filed with the SEC; typically structured as tax-free under IRC Section 355
+  - The distributed business must generally have an active trade or business history of ≥ 5 years
+  - Shareholders receive subsidiary shares pro rata on the distribution date
+
+Trading strategy:
+  Announcement → buy the parent (spin-off expectation drives a sum-of-the-parts re-rating)
+  Distribution date → index funds often force-sell the SpinCo in the first 1-3 months; trim the parent once the catalyst is realized
+
+Example:
+  In 2023 an industrial conglomerate spun off a subsidiary
+  Parent +18% in the 20 days after the announcement
+  Parent pulled back 8% after the subsidiary's first trading day
+```
+
+### Insider Buying and Selling Signals (Form 4)
+
+**Buying signals** (bullish):
+| Signal strength | Condition | Excess return (20-day) |
 |----------|------|----------------|
-| 强 | 控股股东增持 > 总股本1% | +8~12% |
-| 中 | 高管集体增持(≥3人) | +5~8% |
-| 弱 | 单一董事/监事增持 | +2~4% |
+| Strong | Controlling holder / 10% owner buys > 1% of shares outstanding, or CEO/CFO open-market buy > $1M | +8~12% |
+| Medium | Cluster buying by ≥ 3 insiders | +5~8% |
+| Weak | Single director buy | +2~4% |
 
-**减持信号**（看空）：
-| 信号强度 | 条件 | 超额收益(20日) |
+**Selling signals** (bearish):
+| Signal strength | Condition | Excess return (20-day) |
 |----------|------|----------------|
-| 强 | 控股股东计划减持 > 总股本2% | -5~10% |
-| 中 | 解禁后首次减持 | -3~6% |
-| 弱 | 高管离职减持 | -2~4% |
+| Strong | Controlling holder plans to sell > 2% of shares outstanding (e.g., via a secondary offering) | -5~10% |
+| Medium | First sale after IPO lock-up expiry | -3~6% |
+| Weak | Departing executive sells | -2~4% |
 
 ```
-关键窗口期:
-  - 公告前6个月: 内幕交易高发区，异常放量可能是先知资金
-  - 公告后3日: 信息冲击最大
-  - 公告后20日: 超额收益基本消化
+Key windows:
+  - 6 months before announcement: insider-trading hot zone; abnormal volume may be informed money
+  - 3 days after filing: maximum information shock (Form 4 must be filed within 2 business days)
+  - 20 days after filing: excess return largely digested
 
-过滤规则:
-  排除: 被动减持(质押平仓)、大宗交易折价减持(可能是换手不是看空)
-  保留: 竞价减持(真正看空)、增持后短期再减持(反向信号)
+Filter rules:
+  Exclude: pre-scheduled Rule 10b5-1 plan sales, option exercise-and-sell, tax-withholding sales, margin-call liquidations
+  Keep: discretionary open-market trades (genuine signal), a sale shortly after a buy (reversal signal)
 ```
 
-### 股权激励解读
+### Equity-Compensation Interpretation
 
 ```
-关键要素:
-  1. 行权价/授予价: 相对当前股价的折价率
-     折价 > 50% → 激励力度大但可能摊薄严重
-     折价 < 20% → 管理层对股价有信心
+Key elements:
+  1. Exercise / grant price: discount to the current stock price
+     Discount > 50% → strong incentive but heavy dilution
+     Discount < 20% (at-the-money is the US norm) → management confident in the stock
 
-  2. 解锁条件: 业绩目标是否有挑战性
-     例: "未来3年净利润复合增长率≥20%"
-     vs 行业平均增长率10% → 条件较高 → 正面信号
+  2. Vesting conditions: are the performance targets challenging?
+     e.g., PSUs vesting on "3-year net income CAGR ≥ 20%"
+     vs industry average growth of 10% → demanding target → positive signal
 
-  3. 激励对象: 核心技术人员占比
-     核心技术人员 > 50% → 绑定核心人才 → 正面
-     纯管理层 → 可能是利益输送
+  3. Recipients: share going to core technical / non-executive staff
+     Non-C-suite share > 50% → binds key talent → positive
+     Purely C-suite → possible self-dealing
 
-  4. 股份来源:
-     定向增发 → 摊薄每股收益
-     回购 → 不摊薄，更正面
+  4. Share source:
+     Newly issued shares → dilutes EPS
+     Repurchased (treasury) shares → no dilution, more positive
 
-  5. 等待期/解锁期:
-     等待期1年+解锁期3年 → 标准方案
-     等待期短+解锁条件低 → 利益输送嫌疑
+  5. Cliff / vesting period:
+     1-year cliff + 3-year vesting → standard plan
+     Short cliff + weak conditions → self-dealing suspicion
 
-A股实证:
-  激励方案公告后60日平均超额收益: +6.2%
-  解锁条件超预期的: +10.5%
-  行权价接近当前价的: +8.3%
-  首次推出激励 > 再次推出: 超额收益更高
+Empirical reference:
+  Average 60-day excess return after plan announcement: +6.2%
+  Plans with tougher-than-expected targets: +10.5%
+  Exercise price close to the current price: +8.3%
+  First-ever plan > repeat plan: higher excess return
 ```
 
-## 分析框架
+## Analysis Framework
 
-### 1. 定增/配股事件
+### 1. Secondary Offerings and Buybacks
 
-**定增（定向增发）**：
+**Secondary / follow-on offerings and PIPEs**:
 ```
-事件时间线:
-  预案公告 → 股东大会 → 证监会审批 → 发行 → 解禁
+Event timeline:
+  Shelf registration (S-3) → offering announcement (8-K / press release, usually after the close) → overnight pricing → settlement → lock-up expiry
 
-交易节点:
-  1. 预案公告日: 关注折价率和募资用途
-     折价率 = (当前价 - 发行底价) / 当前价
-     折价率 > 20% → 利好（机构愿意折价买入 = 看好）
+Trading nodes:
+  1. Announcement: focus on the discount and use of proceeds
+     Discount = (current price - offer price) / current price
+     Modest discount (< 10%) with a strategic or long-only anchor investor → positive (institutions buying = endorsement)
+     Steep discount (> 20%) in a PIPE → usually distress-driven, negative
 
-  2. 发行前: 定增对象有动力维护股价（锁定价格）
-     公告后到发行前通常有正超额收益
+  2. Before pricing: the stock typically drops 3-8% on a dilutive primary offering, less for a sponsor sell-down
+     Anchor investors have an incentive to support the stock once their price is locked
 
-  3. 解禁日: 定增股份解禁 → 卖压
-     解禁前20日平均跌幅3-5%
-     解禁后20日继续承压
+  3. Lock-up expiry: PIPE / sponsor shares unlock → selling pressure
+     Average decline of 3-5% in the 20 days before expiry
+     Pressure continues for 20 days after
 
-募资用途评分:
-  并购优质资产: +3分
-  扩产/新项目: +2分
-  补充流动资金: 0分 (中性偏负)
-  偿还债务: -1分
-  大股东认购比例 > 50%: +2分 (利益绑定)
-```
+Use-of-proceeds scoring:
+  Acquiring quality assets: +3
+  Capacity expansion / new projects: +2
+  General working capital: 0 (neutral to slightly negative)
+  Debt repayment: -1
+  Insider / major-holder participation > 50%: +2 (aligned interests)
 
-**可交债（EB）**：
-```
-可交换债券 = 大股东以持有股份为担保发行的债券
-  换股价 = 发行时约定的换股价格
-  当股价 > 换股价 × 130% → 投资者倾向换股 → 相当于大股东减持
-  当股价 < 换股价 × 70%  → 投资者持有债券 → 大股东用低利率融资
-
-交易信号:
-  发行可交债 = 大股东可能计划减持，但比直接减持更温和
-  临近换股期+股价接近换股价 → 关注大股东是否有意让股价突破换股价
+Share buybacks (the positive mirror image):
+  Authorization (8-K / press release) is not execution; track actual repurchases in the 10-Q
+  Buyback yield = trailing repurchases / market cap; > 3% → meaningful
+  Accelerated share repurchase (ASR) → immediate execution, strongest signal
+  Buyback + insider buying + dividend raise → strong combined signal; debt-funded buybacks at high leverage → discount the signal
 ```
 
-### 2. ST/退市预警
-
-**ST标记规则（2024新规）**：
+**Convertible and exchangeable notes**:
 ```
-*ST (退市风险警示):
-  - 最近一年净利润为负 + 营收 < 3亿（主板）/ 1亿（创业板）
-  - 审计意见: 无法表示/否定
-  - 财务造假
+Exchangeable note = bond issued by a major shareholder secured by its stake; convertible note = issued by the company itself
+  Conversion price = the price agreed at issuance
+  When stock > conversion price × 130% → holders convert → equivalent to a shareholder sale / dilution
+  When stock < conversion price × 70%  → holders keep the bond → the issuer gets low-rate financing
 
-ST (其他风险警示):
-  - 资金占用
-  - 违规担保
-  - 内控审计否定意见
-
-退市条件:
-  - 连续20个交易日收盘市值 < 3亿（主板）/ 5亿（创业板/科创板）
-  - 连续20个交易日股价 < 1元
-  - 财务类: *ST后下一年仍不达标
+Trading signals:
+  An exchangeable-note issuance = the holder may plan to reduce its stake, but more gradually than an open-market sale
+  Near the conversion window with the stock close to the conversion price → watch whether the issuer wants the stock above the conversion price
 ```
 
-**交易策略**：
+### 2. Delisting and Going-Concern Warnings
+
+**Exchange listing standards (NYSE / Nasdaq)**:
 ```
-规避策略（推荐）:
-  - 持仓中排除所有ST/*ST
-  - 排除 "最近一季度亏损 + 营收下滑 > 30%" 的潜在ST股
-  - 排除审计机构出具保留意见的
+Deficiency notices (the US analogue of a risk-warning flag):
+  - Closing bid < $1.00 for 30 consecutive trading days → notice, 180-day cure period (Nasdaq may grant a second 180 days)
+  - Market value of publicly held shares below the exchange minimum ($15M Nasdaq; NYSE 30-day average market cap < $15M)
+  - Stockholders' equity below the minimum (e.g., $2.5M on the Nasdaq Capital Market)
+  - Late 10-K / 10-Q (NT filing) → delinquency notice
 
-投机策略（高风险，仅供研究）:
-  摘帽概念: *ST公司业绩扭亏 → 申请摘帽 → 涨停潮
-  条件筛选:
-    - 最近一季度盈利（扭亏拐点）
-    - 有实质性资产重组/债务重组方案
-    - 市值 > 10亿（远离面值退市线）
-  风控: 仓位 < 5%, 止损 -15%
-```
+Audit and control red flags:
+  - Going-concern paragraph (substantial doubt) in the auditor's report
+  - Adverse opinion / disclaimer of opinion; material weakness under SOX 404
+  - Restatement, SEC investigation, or accounting fraud
 
-### 3. 事件日历与交易时间窗
-
-```
-T-30 至 T-1（事前窗口）:
-  增持/回购预案 → 逐步建仓
-  并购预案 → 评估确定性后建仓
-
-T（公告日）:
-  利好事件 → 集合竞价追入（注意涨停封单量）
-  利空事件 → 开盘前挂单卖出
-
-T+1 至 T+20（事后窗口）:
-  信息逐步消化，超额收益递减
-  大事件（并购/重组）: 消化期可达60天
-  小事件（增持/回购）: 20天基本消化
-
-T+N（长期效应）:
-  股权激励解锁期前后: 管理层有动力维护股价
-  定增解禁日: 确定性卖压
+Delisting triggers:
+  - Failure to cure the bid-price deficiency (reverse splits are commonly used to regain compliance)
+  - Chapter 11 filing → usually delisted and moved to OTC (Pink / Expert Market)
+  - Repeated delinquent filings
 ```
 
-## 输出格式
-
-事件驱动分析报告：
+**Trading strategies**:
 ```
-=== 事件概况 ===
-标的: 000001.SZ 平安银行
-事件: 控股股东增持计划公告
-日期: 2026-03-25
-增持规模: 10-20亿元 (占总股本0.8%-1.6%)
+Avoidance strategy (recommended):
+  - Exclude every name with an active deficiency notice or going-concern qualification
+  - Exclude potential candidates: "loss in the latest quarter + revenue decline > 30%"
+  - Exclude companies whose auditor issued a qualified opinion or resigned
 
-=== 信号评估 ===
-信号强度: 强 (控股股东+金额大)
-历史参考: 同类事件20日平均超额+8.2%
-确定性: 高 (已公告增持计划, 6个月窗口期)
-
-=== 策略建议 ===
-操作: 公告次日开盘建仓
-仓位: 5-8% (单事件上限)
-持有期: 20-30个交易日
-止损: -5% (低于公告日收盘价5%)
-止盈: +12% 或 持有期满
-
-=== 风险提示 ===
-- 市场系统性下跌可能抵消事件效应
-- 增持进度不及预期 → 关注月度增持公告
-- 银行板块整体估值压制 → 超额收益可能偏低
+Speculative strategy (high risk, research only):
+  Compliance-regained plays: a distressed company returns to profitability → cures the deficiency → re-rating
+  Screening conditions:
+    - Profitable in the latest quarter (turnaround inflection)
+    - Substantive restructuring / debt-exchange plan in place
+    - Market cap > $50M (well above the delisting threshold)
+  Risk control: position < 5%, stop loss -15%
 ```
 
-## 注意事项
+### 3. Event Calendar and Trading Windows
 
-1. **信息时效性**：A股公告在交易所官网/巨潮资讯网首发，第三方平台有延迟，套利窗口可能已关闭
-2. **内幕交易风险**：事件公告前的异常量价可能是内幕交易，跟随介入需谨慎（可能被监管调查）
-3. **事件聚集效应**：同一标的多个事件叠加时信号增强（增持+回购+激励 = 强信号），但需排除"组合拳护盘"
-4. **注册制影响**：借壳上市价值下降，传统壳资源套利空间大幅收缩
-5. **量化可获取性**：tushare 提供增减持/股权激励/定增数据接口，但实时性不足（T+1或更慢）
-6. **仓位控制**：单一事件驱动策略仓位不超过10%，事件失败（如并购被否）可能导致20%+跌幅
+```
+T-30 to T-1 (pre-event window):
+  Buyback authorization / insider buying → scale in gradually
+  Merger announcement → assess certainty, then build the position
 
-## 依赖
+T (announcement day):
+  Positive event → buy at the open (no daily price limit in the US, so the pre-market gap can fully price the news)
+  Negative event → sell in the pre-market or at the open
+
+T+1 to T+20 (post-event window):
+  Information is gradually digested and excess return decays
+  Large events (M&A / restructuring): digestion can take up to 60 days
+  Small events (insider buys / buybacks): mostly digested in 20 days
+
+T+N (long-term effects):
+  Around equity-compensation vesting dates: management has an incentive to support the stock
+  Lock-up expiry dates: predictable selling pressure
+```
+
+## Output Format
+
+Event-driven analysis report:
+```
+=== Event Overview ===
+Ticker: KEY.US KeyCorp
+Event: cluster of insider open-market purchases (Form 4, 3 executives)
+Date: 2026-03-25
+Size: $10-20M (0.8%-1.6% of shares outstanding)
+
+=== Signal Assessment ===
+Signal strength: strong (senior insiders + large size)
+Historical reference: comparable events average +8.2% 20-day excess return
+Certainty: high (filed Form 4 purchases, not a plan announcement)
+
+=== Strategy Recommendation ===
+Action: open position at the next day's open
+Size: 5-8% (per-event cap)
+Holding period: 20-30 trading days
+Stop loss: -5% (5% below the announcement-day close)
+Take profit: +12% or at the end of the holding period
+
+=== Risks ===
+- A market-wide sell-off could offset the event effect
+- Follow-on buying could stall → monitor subsequent Form 4 filings
+- Bank-sector valuation overhang → excess return may be smaller
+```
+
+## Notes
+
+1. **Information timeliness**: US filings appear first on SEC EDGAR (8-K, Form 4, 13D); third-party aggregators lag, and the arbitrage window may already be closed
+2. **Insider-trading risk**: abnormal price/volume ahead of an announcement may reflect insider trading; piggybacking is risky (regulatory investigations)
+3. **Event clustering**: overlapping events on the same name reinforce the signal (insider buying + buyback + equity plan = strong signal), but rule out a coordinated "defend the stock" package
+4. **SPAC / reverse-merger decline**: after the 2021 SPAC bust, shell-company arbitrage has shrunk substantially
+5. **Data availability**: SEC EDGAR full-text search and Form 4 feeds are free; commercial APIs add structured insider / offering / buyback data, but Form 4 itself only has to be filed within 2 business days
+6. **Position control**: keep any single event-driven strategy at or below 10%; a failed event (e.g., a blocked merger) can produce a 20%+ drop
+
+## China market notes
+
+- A-share deal types: backdoor listings (less common after registration-based IPO reform, 30-100% returns, very high approval risk), asset injections (10-30%), absorption mergers (5-15%), and tender offers (3-8%). Approval chain: board → shareholder meeting → CSRC (and MOFCOM for foreign buyers). Watch the "planning a major asset restructuring" announcement → trading halt → resumption cycle; the first day after resumption is capped at 20% on ChiNext / STAR
+- A-share spin-off conditions: listed ≥ 3 years, subsidiary net income ≥ 10% of the parent's, subsidiary net assets ≤ 30% of the parent's
+- Insider filters: exclude passive selling from pledge liquidations and discounted block-trade sales (often a hand-off, not a bearish view); keep open-auction sales; the strongest buy signal is a controlling shareholder buying > 1% of total shares
+- Private placements (dingzeng): timeline proposal → shareholder meeting → CSRC approval → issuance → unlock; discount = (current price - floor price) / current price, and a discount > 20% is read as positive (institutions willing to buy = endorsement); placement shares typically fall 3-5% into unlock. Rights issues (peigu) and exchangeable bonds (EB) issued by major holders follow the same discount logic
+- ST / *ST rules (2024): *ST for a net loss plus revenue < CNY 300M (main board) / CNY 100M (ChiNext), disclaimer or adverse audit opinion, or fraud; ST for fund misappropriation, illegal guarantees, or an adverse internal-control opinion. Delisting: 20 consecutive days of market cap < CNY 300M (main board) / CNY 500M (ChiNext / STAR) or price < CNY 1, or failing *ST criteria the following year. The "cap removal" play: *ST turns profitable → applies to remove the flag → limit-up run; screen for market cap > CNY 1B
+- Data: announcements are first published on exchange websites and cninfo (juchao); tushare provides insider, equity-plan, and placement data with T+1 or slower latency. Use the daily price-limit queue (limit-up order size) when entering at the open auction
+- Illustrative A-share output: 000001.SZ Ping An Bank, controlling-shareholder purchase plan of CNY 1-2B (0.8%-1.6% of shares) with a 6-month execution window
+
+## Dependencies
 
 ```bash
 pip install pandas numpy

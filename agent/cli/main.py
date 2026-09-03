@@ -1054,11 +1054,11 @@ def _render_mandate_proposal(console: Any, proposal: Dict[str, Any]) -> None:
     funding_note = proposal.get("funding_note") or (
         "Funding is set by YOU in the broker; the agent cannot move money."
     )
-    halt_note = proposal.get("halt_note") or '随时一句 "停" = kill switch, halts everything.'
+    halt_note = proposal.get("halt_note") or 'Say "stop" at any time = kill switch, halts everything.'
     console.print(f"  [dim]{funding_note}[/dim]")
     console.print(f"  [dim]{halt_note}[/dim]")
     console.print(
-        '  [bold]Pick a number to commit, or say "按 2 但每日笔数提到 10" to adjust.[/bold]'
+        '  [bold]Pick a number to commit, or say "option 2 but raise the daily cap to 10" to adjust.[/bold]'
     )
     console.print()
 
@@ -1069,10 +1069,10 @@ def _render_scheduled_proposal(console: Any, proposal: Dict[str, Any]) -> None:
     schedule = job.get("schedule") or {}
     delivery = job.get("delivery") or {}
     operation = proposal.get("operation")
-    verb = "创建" if operation == "create" else "取消"
+    verb = "create" if operation == "create" else "cancel"
     channel_suffix = f" ({delivery.get('channel')})" if delivery.get("channel") else ""
     console.print()
-    console.print(f"[bold orange1]定时研究确认 · {verb}[/bold orange1]")
+    console.print(f"[bold orange1]Scheduled research confirmation · {verb}[/bold orange1]")
     console.print(f"  任务: {job.get('title') or job.get('id') or '?'}")
     if operation == "create":
         console.print(

@@ -1,246 +1,246 @@
 ---
 name: credit-analysis
-description: "固收与信用分析：信用债评级、利差分析、违约风险评估、城投债研究、可转债定价与策略。"
+description: "Fixed income and credit analysis: bond pricing, yield curves, duration and DV01, credit ratings, Altman Z-Score, Merton/KMV default probability, credit spreads, ABS/MBS, municipal bonds, and convertible bond floors; use when a user asks about bond valuation, interest-rate risk, default risk, or credit-spread strategies."
 category: analysis
 ---
 
-# Credit Analysis Skill — 固收与信用分析
+# Credit Analysis Skill — Fixed Income and Credit
 
-## 适用场景
+## When to Use
 
-当用户提出以下类型问题时，优先调用本 skill：
-- 债券定价、YTM 计算、久期/凸性分析
-- 企业信用评级、违约概率估算
-- 信用利差分析与交易策略
-- 城投债、ABS/MBS 信用评估
-- 利率风险管理（DV01、关键利率久期）
-- 中国固收市场结构分析
+Load this skill first when the user asks about:
+- Bond pricing, YTM calculation, duration / convexity analysis
+- Corporate credit ratings, default probability estimation
+- Credit-spread analysis and trading strategies
+- Municipal bonds, ABS / MBS credit assessment
+- Interest-rate risk management (DV01, key-rate duration)
+- Fixed-income market structure
 
 ---
 
-## 一、信用分析框架
+## 1. Credit Analysis Framework
 
-### 1.1 信用评级体系
+### 1.1 Credit Rating System
 
-#### 主体评级 vs 债项评级
+#### Issuer Rating vs Issue Rating
 
-| 类型 | 定义 | 评级对象 |
+| Type | Definition | Rated Entity |
 |------|------|----------|
-| **主体评级（Issuer Rating）** | 发行人整体偿债能力 | 企业、政府、金融机构 |
-| **债项评级（Issue Rating）** | 特定债券的信用质量 | 具体债券，考虑抵押品、优先级、契约条款 |
+| **Issuer Rating** | Overall repayment capacity of the issuer | Corporations, governments, financial institutions |
+| **Issue Rating** | Credit quality of a specific bond | A specific bond, considering collateral, seniority, covenants |
 
-债项评级可高于或低于主体评级（取决于担保结构）。
+An issue rating can be above or below the issuer rating (depending on the security structure).
 
-#### 标准普尔 / 穆迪 / 中国评级对照
+#### S&P / Moody's / Fitch Rating Scale
 
-| S&P | Moody's | 中国评级 | 含义 |
+| S&P | Moody's | Fitch | Meaning |
 |-----|---------|----------|------|
-| AAA | Aaa | AAA | 最高信用质量，极低违约风险 |
-| AA+/AA/AA- | Aa1/Aa2/Aa3 | AA+/AA/AA- | 高质量，极低违约风险 |
-| A+/A/A- | A1/A2/A3 | A+/A/A- | 较高信用质量 |
-| BBB+/BBB/BBB- | Baa1/Baa2/Baa3 | BBB+/BBB/BBB- | 投资级下限（IG/HY分水岭） |
-| BB+及以下 | Ba1及以下 | BB+及以下 | 高收益/投机级 |
-| D | D | D | 违约 |
+| AAA | Aaa | AAA | Highest credit quality, minimal default risk |
+| AA+/AA/AA- | Aa1/Aa2/Aa3 | AA+/AA/AA- | High quality, very low default risk |
+| A+/A/A- | A1/A2/A3 | A+/A/A- | Upper-medium credit quality |
+| BBB+/BBB/BBB- | Baa1/Baa2/Baa3 | BBB+/BBB/BBB- | Investment-grade floor (IG / HY boundary) |
+| BB+ and below | Ba1 and below | BB+ and below | High yield / speculative grade |
+| D | D | D | Default |
 
-> **中国特点**：国内评级虚高，AA级在国内约等同于国际BBB-，需结合评级展望（正面/稳定/负面）综合判断。
+> **Reading ratings**: the BBB- / Baa3 line drives forced selling by IG-only mandates ("fallen angels"), so watch the outlook (positive / stable / negative) and watch-list status, not just the letter grade.
 
 ---
 
-### 1.2 Altman Z-Score 模型
+### 1.2 Altman Z-Score Model
 
-用于预测企业财务困境，原始模型适用于上市制造业：
+Used to predict corporate financial distress; the original model applies to listed manufacturers:
 
 ```
-Z = 1.2×X1 + 1.4×X2 + 3.3×X3 + 0.6×X4 + 1.0×X5
+Z = 1.2 x X1 + 1.4 x X2 + 3.3 x X3 + 0.6 x X4 + 1.0 x X5
 ```
 
-| 变量 | 计算公式 | 含义 |
+| Variable | Formula | Meaning |
 |------|----------|------|
-| X1 | 营运资本 / 总资产 | 流动性 |
-| X2 | 留存收益 / 总资产 | 盈利积累 |
-| X3 | EBIT / 总资产 | 盈利能力 |
-| X4 | 股权市值 / 总负债账面值 | 财务杠杆 |
-| X5 | 销售收入 / 总资产 | 资产效率 |
+| X1 | Working capital / total assets | Liquidity |
+| X2 | Retained earnings / total assets | Accumulated profitability |
+| X3 | EBIT / total assets | Earning power |
+| X4 | Market value of equity / book value of total liabilities | Financial leverage |
+| X5 | Sales / total assets | Asset efficiency |
 
-**判断区间**：
-- Z > 2.99：安全区（低违约风险）
-- 1.81 < Z < 2.99：灰色区（需深入分析）
-- Z < 1.81：危险区（高违约风险）
+**Decision zones**:
+- Z > 2.99: safe zone (low default risk)
+- 1.81 < Z < 2.99: grey zone (needs deeper analysis)
+- Z < 1.81: distress zone (high default risk)
 
-**改进版本**：
-- Z'（私有企业）：X4改用股权账面值，临界值2.90/1.23
-- Z''（非制造业/新兴市场）：去掉X5，临界值2.60/1.10
+**Variants**:
+- Z' (private companies): X4 uses book value of equity; cut-offs 2.90 / 1.23
+- Z'' (non-manufacturers / emerging markets): drops X5; cut-offs 2.60 / 1.10
 
-**局限性**：
-- 基于历史数据，滞后性强
-- 不适用金融类企业（杠杆定义不同）
-- 中国市场需重新标定参数
+**Limitations**:
+- Based on historical data, so it lags
+- Not applicable to financial companies (leverage is defined differently)
+- Parameters should be recalibrated for non-US markets
 
 ---
 
-### 1.3 Merton 结构化模型
+### 1.3 Merton Structural Model
 
-将公司股权视为对公司资产的看涨期权（执行价格=债务面值）：
+Treats the firm's equity as a call option on the firm's assets (strike = face value of debt):
 
-**核心假设**：
-- 公司资产价值 V 遵循几何布朗运动：`dV = μV dt + σ_V V dW`
-- 债务为零息债，面值 D，到期日 T
-- 违约仅在 T 时刻发生（欧式违约设定）
+**Core assumptions**:
+- Firm asset value V follows geometric Brownian motion: `dV = mu V dt + sigma_V V dW`
+- Debt is a zero-coupon bond with face value D maturing at T
+- Default occurs only at T (European-style default)
 
-**股权定价（BS公式）**：
+**Equity valuation (Black-Scholes)**:
 ```
-E = V·N(d1) - D·e^(-rT)·N(d2)
+E = V*N(d1) - D*e^(-rT)*N(d2)
 
-d1 = [ln(V/D) + (r + σ_V²/2)T] / (σ_V·√T)
-d2 = d1 - σ_V·√T
+d1 = [ln(V/D) + (r + sigma_V^2/2)T] / (sigma_V*sqrt(T))
+d2 = d1 - sigma_V*sqrt(T)
 ```
 
-**违约概率（风险中性）**：
+**Default probability (risk-neutral)**:
 ```
 PD = N(-d2)
 ```
 
-**距违约距离（DD, Distance to Default）**：
+**Distance to default (DD)**:
 ```
-DD = [ln(V/D) + (μ - σ_V²/2)T] / (σ_V·√T)
-```
-
-**信用利差估算**：
-```
-信用利差 ≈ -ln[N(d2) + (V/D·e^(rT))·N(-d1)] / T
+DD = [ln(V/D) + (mu - sigma_V^2/2)T] / (sigma_V*sqrt(T))
 ```
 
-**参数估算方法**（联立方程组）：
-1. E = V·N(d1) - D·e^(-rT)·N(d2)
-2. σ_E·E = N(d1)·σ_V·V
+**Credit-spread estimate**:
+```
+Credit spread ~ -ln[N(d2) + (V/D*e^(rT))*N(-d1)] / T
+```
+
+**Parameter estimation** (simultaneous equations):
+1. E = V*N(d1) - D*e^(-rT)*N(d2)
+2. sigma_E*E = N(d1)*sigma_V*V
 
 ---
 
-### 1.4 KMV 模型（预期违约频率 EDF）
+### 1.4 KMV Model (Expected Default Frequency, EDF)
 
-KMV 是 Merton 模型的商业化实现，由穆迪收购：
+KMV is the commercial implementation of the Merton model, acquired by Moody's:
 
-**步骤**：
-1. 用股价和股权波动率反推资产价值 V 和资产波动率 σ_V
-2. 计算违约触发点（Default Point）：`DP = 短期债务 + 0.5×长期债务`
-3. 计算距违约距离：`DD = (V - DP) / (V × σ_V)`
-4. 通过历史违约数据库将 DD 映射为 EDF（非正态映射）
+**Steps**:
+1. Back out asset value V and asset volatility sigma_V from the stock price and equity volatility
+2. Compute the default point: `DP = short-term debt + 0.5 x long-term debt`
+3. Compute distance to default: `DD = (V - DP) / (V x sigma_V)`
+4. Map DD to EDF using a historical default database (non-normal mapping)
 
-**与 Merton 的区别**：
-- 违约触发点不是全部债务，而是短期+半长期
-- DD→EDF 映射基于实证数据库，非正态分布假设
-- EDF 是真实世界概率，而非风险中性概率
+**Differences from Merton**:
+- The default point is not total debt but short-term plus half of long-term debt
+- The DD-to-EDF mapping is empirical, not based on a normal distribution
+- EDF is a real-world probability, not a risk-neutral one
 
-**EDF 参考区间**（约）：
-- EDF < 0.1%：投资级
-- 0.1%–1%：BBB-BB 级
-- 1%–5%：B 级
-- EDF > 5%：CCC 及以下
+**EDF reference bands** (approximate):
+- EDF < 0.1%: investment grade
+- 0.1%-1%: BBB-BB
+- 1%-5%: B
+- EDF > 5%: CCC and below
 
 ---
 
-### 1.5 信用评分卡方法论
+### 1.5 Credit Scorecard Methodology
 
-适用于零售信贷/ABS 底层资产分析：
+Applies to consumer credit / ABS collateral analysis:
 
-**建模流程**：
-1. **数据准备**：收集历史贷款数据，定义违约标签（如逾期90天+）
-2. **特征工程**：WOE（Weight of Evidence）编码
-3. **特征选择**：IV值（Information Value）筛选，IV>0.02保留
-4. **模型训练**：Logistic Regression（主流）、XGBoost
-5. **评分转换**：`Score = A - B×ln(odds)`，通常基准分600，PDO=20
+**Modeling workflow**:
+1. **Data preparation**: collect historical loan data, define the default label (e.g. 90+ days past due)
+2. **Feature engineering**: WOE (Weight of Evidence) encoding
+3. **Feature selection**: screen by IV (Information Value), keep IV > 0.02
+4. **Model training**: logistic regression (mainstream), XGBoost
+5. **Score scaling**: `Score = A - B x ln(odds)`, typically base score 600, PDO = 20
 
-**WOE 和 IV 计算**：
+**WOE and IV calculation**:
 ```python
-WOE_i = ln(好样本比例_i / 坏样本比例_i)
-IV_i = (好样本比例_i - 坏样本比例_i) × WOE_i
-总IV = Σ IV_i
+WOE_i = ln(good_share_i / bad_share_i)
+IV_i = (good_share_i - bad_share_i) x WOE_i
+Total IV = sum(IV_i)
 ```
 
-**IV 参考标准**：
-- IV < 0.02：无预测力
-- 0.02–0.1：弱预测力
-- 0.1–0.3：中等预测力
-- IV > 0.3：强预测力
+**IV reference scale**:
+- IV < 0.02: no predictive power
+- 0.02-0.1: weak
+- 0.1-0.3: medium
+- IV > 0.3: strong
 
 ---
 
-## 二、固收产品分析
+## 2. Fixed-Income Product Analysis
 
-### 2.1 国债与政府债
+### 2.1 Treasuries and Government Bonds
 
-#### 收益率曲线分析
+#### Yield Curve Analysis
 
-**即期利率曲线（Zero Curve）**：各期限无风险零息债收益率，通过 Bootstrap 方法从附息债提取。
+**Spot (zero) curve**: risk-free zero-coupon yields at each maturity, bootstrapped from coupon bonds.
 
-**远期利率曲线（Forward Curve）**：
+**Forward curve**:
 ```
 f(T1, T2) = [(1+r2)^T2 / (1+r1)^T1]^(1/(T2-T1)) - 1
 ```
 
-**期限利差**：
-- 10Y-2Y：经济周期预判指标，负值通常预示衰退
-- 10Y-1Y：流动性偏好衡量指标
-- 30Y-10Y：超长端供需判断
+**Term spreads**:
+- 10Y-2Y: business-cycle indicator; a negative value usually precedes a recession
+- 10Y-3M: the Fed's preferred recession-probability input
+- 30Y-10Y: gauge of long-end supply and demand
 
-**收益率曲线形态**：
-| 形态 | 特征 | 经济含义 |
+**Yield curve shapes**:
+| Shape | Feature | Economic Meaning |
 |------|------|----------|
-| 正斜率（Normal） | 长端>短端 | 经济扩张预期 |
-| 平坦（Flat） | 各期限相近 | 经济转折点 |
-| 倒挂（Inverted） | 短端>长端 | 衰退信号 |
-| 驼峰（Humped） | 中端最高 | 流动性分层 |
+| Normal (upward sloping) | Long end > short end | Expansion expected |
+| Flat | Similar across maturities | Turning point |
+| Inverted | Short end > long end | Recession signal |
+| Humped | Belly highest | Liquidity segmentation |
 
-#### 中国国债收益率曲线特点
-- 基准曲线：中国国债（CGBs）+ 国开债（Policy Bank Bonds）
-- 关键点位：1Y/3Y/5Y/7Y/10Y/30Y
-- 10Y国债为核心基准利率
+#### US Treasury Curve Characteristics
+- Benchmark curve: on-the-run Treasuries (bills, notes, bonds) plus the SOFR swap curve
+- Key tenors: 3M / 2Y / 5Y / 7Y / 10Y / 30Y
+- The 10Y Treasury is the core benchmark rate; agency (Fannie / Freddie) debt trades at a small spread over Treasuries
 
 ---
 
-### 2.2 企业债分析
+### 2.2 Corporate Bond Analysis
 
-#### 核心指标
+#### Core Metrics
 
-**票面利率（Coupon Rate）**：发行时约定，按面值计息。
+**Coupon rate**: fixed at issuance, paid on face value.
 
-**到期收益率 YTM（Yield to Maturity）**：
-使 债券现值 = 市场价格的内部收益率：
+**Yield to maturity (YTM)**:
+The internal rate of return that sets bond present value = market price:
 ```
-P = Σ [C/(1+y)^t] + F/(1+y)^n
+P = sum [C/(1+y)^t] + F/(1+y)^n
 ```
-其中 C=票息，F=面值，y=YTM，n=期数。
+where C = coupon, F = face value, y = YTM, n = number of periods.
 
-**当期收益率（Current Yield）**：`CY = 年票息 / 市场价格`（忽略本金损益）
+**Current yield**: `CY = annual coupon / market price` (ignores principal gain / loss)
 
-**修正久期（Modified Duration）**：
+**Modified duration**:
 ```
-MD = -dP/P ÷ dy = Macaulay Duration / (1+y/m)
+MD = -dP/P / dy = Macaulay Duration / (1+y/m)
 ```
-含义：利率每变化1%，债券价格变化约MD%（反向）。
+Meaning: for a 1% change in rates, the bond price moves about MD% (in the opposite direction).
 
-**凸性（Convexity）**：
+**Convexity**:
 ```
-CX = [Σ t(t+1)·CF_t/(1+y)^(t+2)] / P
-价格变化修正：ΔP/P ≈ -MD·Δy + 0.5·CX·(Δy)²
+CX = [sum t(t+1)*CF_t/(1+y)^(t+2)] / P
+Price-change correction: dP/P ~ -MD*dy + 0.5*CX*(dy)^2
 ```
 
-#### 债券价格公式（实现）
+#### Bond Price Formula (Implementation)
 
-定价函数是仓库里的实测代码，直接 import，**不要在会话里重新手写**：
+The pricing function is tested code in the repository; import it directly and **do not rewrite it in the session**:
 
 ```python
 from src.quantlib.fixedincome import bond_price
 
 bond_price(face=100, coupon_rate=0.05, ytm=0.04, n_periods=5, freq=1)
-# -> 104.4518...   5年期、票息5%、YTM=4%、年付
+# -> 104.4518...   5-year, 5% coupon, YTM = 4%, annual pay
 ```
 
-两个约定在这里是**显式参数**，不是隐含假设：
+Two conventions are **explicit parameters** here, not implicit assumptions:
 
-- `compounding`：`"discrete"`（默认，每年 `freq` 次离散复利，即上面 `P = Σ C/(1+y/m)^t` 的形式）或 `"continuous"`。
-- 日算基准：`bond_price` 按整数付息期贴现，因此返回的是**付息日**的价格（净价，应计为 0）。
-  非付息日结算要另加应计利息才是全价（脏价）：
+- `compounding`: `"discrete"` (default, `freq` compounding periods per year, i.e. the `P = sum C/(1+y/m)^t` form above) or `"continuous"`.
+- Day count: `bond_price` discounts over whole coupon periods, so it returns the price **on a coupon date** (clean price, accrued = 0).
+  For settlement between coupon dates, add accrued interest to get the full (dirty) price:
 
 ```python
 import datetime as dt
@@ -251,290 +251,292 @@ accrued = accrued_interest(
     last_coupon=dt.date(2024, 1, 15),
     settlement=dt.date(2024, 4, 15),
     next_coupon=dt.date(2024, 7, 15),
-    day_count="30/360",   # ACT/365F(默认) | ACT/360 | ACT/ACT | 30/360 | 30E/360
+    day_count="30/360",   # ACT/365F (default) | ACT/360 | ACT/ACT | 30/360 | 30E/360
 )                          # -> 1.25
 dirty_price = bond_price(100, 0.05, 0.04, 10, 2) + accrued
 ```
 
 ---
 
-### 2.3 可转债（纯债部分）
+### 2.3 Convertible Bonds (Straight-Debt Component)
 
-> 可转债的转股期权部分详见 `convertible-bond` skill，本节聚焦纯债价值。
+> The conversion-option component is covered in the `convertible-bond` skill; this section focuses on the bond floor.
 
-**纯债价值（Bond Floor）**：
+**Bond floor (straight-debt value)**:
 ```
-纯债价值 = Σ [票息/(1+r_straight)^t] + 面值/(1+r_straight)^n
+Bond floor = sum [coupon/(1+r_straight)^t] + face/(1+r_straight)^n
 ```
-其中 r_straight 为同评级同期限直债收益率。
+where r_straight is the yield on a straight bond of the same rating and maturity.
 
-**转股溢价率与纯债溢价率**：
-- 转股溢价率 = (可转债价格 - 转股价值) / 转股价值
-- 纯债溢价率 = (可转债价格 - 纯债价值) / 纯债价值
+**Conversion premium and bond-floor premium**:
+- Conversion premium = (convertible price - conversion value) / conversion value
+- Bond-floor premium = (convertible price - bond floor) / bond floor
 
-**下修条款信用含义**：
-下修转股价可能导致摊薄，需评估公司意愿（强赎冲动 vs 回售压力）。
+**Credit implications of reset and call features**:
+Conversion-price resets can dilute shareholders; assess the issuer's incentives (desire to force conversion via soft call vs put pressure from bondholders).
 
 ---
 
-### 2.4 ABS/MBS 分析
+### 2.4 ABS / MBS Analysis
 
-#### 底层资产分析框架
+#### Collateral Analysis Framework
 
-**资产质量指标**：
-- 加权平均票息（WAC）
-- 加权平均剩余期限（WAM）
-- 加权平均贷款价值比（LTV）
-- 历史逾期率（DPD 30/60/90+）
-- 累计违约率（CDR，Cumulative Default Rate）
+**Asset-quality metrics**:
+- Weighted average coupon (WAC)
+- Weighted average maturity (WAM)
+- Weighted average loan-to-value (LTV)
+- Historical delinquency (DPD 30 / 60 / 90+)
+- Cumulative default rate (CDR)
 
-**早偿率模型**：
-- CPR（Conditional Prepayment Rate）：年化早偿率
-- SMM（Single Monthly Mortality）：月早偿率
+**Prepayment models**:
+- CPR (Conditional Prepayment Rate): annualized prepayment rate
+- SMM (Single Monthly Mortality): monthly prepayment rate
   ```
   CPR = 1 - (1 - SMM)^12
   SMM = 1 - (1 - CPR)^(1/12)
   ```
-- PSA 模型：标准早偿假设（PSA100 = 前30个月线性增至6%/年，之后6%/年恒定）
+- PSA model: standard prepayment assumption (100 PSA = linear ramp to 6% per year over the first 30 months, then constant 6% per year)
 
-**分层结构（Tranche）分析**：
-- 优先级（Senior）：最先受偿，评级最高
-- 夹层（Mezzanine）：次级受偿
-- 劣后级（Equity/Junior）：首先吸收损失，超额利差归属
+**Tranche structure analysis**:
+- Senior: paid first, highest rating
+- Mezzanine: paid second
+- Equity / junior: absorbs first losses, receives excess spread
 
-**关键风险指标**：
+**Key risk metrics**:
 ```
-增信倍数 = (底层资产池规模 - 优先级规模) / 优先级规模
-超额利差 = 底层资产池利率 - 优先级融资成本 - 服务费
+Credit enhancement = (collateral pool size - senior tranche size) / senior tranche size
+Excess spread = collateral pool yield - senior funding cost - servicing fee
 ```
 
 ---
 
-### 2.5 城投债信用分析
+### 2.5 Municipal Bond Credit Analysis
 
-城投债（LGFV，地方政府融资平台债）是中国固收市场特有品种。
+Municipal bonds (munis) are issued by US states, cities, counties, and their agencies; interest is generally exempt from federal income tax, so they are compared on a tax-equivalent yield basis.
 
-#### 分析框架
+#### Analysis Framework
 
-**四维评估模型**：
+**Four-dimension assessment model**:
 
-| 维度 | 核心指标 | 权重 |
+| Dimension | Core Metrics | Weight |
 |------|----------|------|
-| 区域财政实力 | 一般公共预算收入、GDP规模、财政自给率 | 40% |
-| 平台层级 | 省级>市级>区县级，级别越高隐性支持越强 | 25% |
-| 平台地位 | 是否唯一城投、资产注入力度、业务多元化 | 20% |
-| 债务结构 | 有息负债规模、短期债务占比、再融资压力 | 15% |
+| Economic and fiscal strength | Tax base, general-fund revenue, GDP / employment, reserve ratio | 40% |
+| Security type and legal pledge | GO (full faith and credit, taxing power) > essential-service revenue bonds > appropriation-backed > project revenue | 25% |
+| Issuer position | Essentiality of the service, monopoly status, diversification of the revenue base | 20% |
+| Debt structure | Debt per capita, debt service / revenue, pension and OPEB liabilities, refinancing needs | 15% |
 
-**隐性债务风险信号**：
-- 城投货币资金/短期债务 < 0.5（流动性紧张）
-- EBITDA利息覆盖率 < 1（依赖外部融资付息）
-- 非标融资占比>30%（再融资风险高）
-- 区县级城投、弱区域（负债率>100%）
+**Stress signals**:
+- General-fund reserves / expenditures < 5% (thin liquidity)
+- Debt-service coverage ratio < 1.0x on revenue bonds (relying on external funding to pay interest)
+- Unfunded pension liabilities > 100% of annual revenue
+- Persistent structural deficits, population outflow, single-employer economies
 
-**城投估值溢价结构**（参考）：
+**Muni yield structure** (reference):
 ```
-城投利率 ≈ 同期国债 + 流动性溢价(30-50bp) + 区域溢价(0-200bp) + 平台溢价(0-100bp)
+Muni yield ~ Treasury x (1 - marginal tax rate) + liquidity premium (10-30bp) + credit premium (0-300bp)
+Tax-equivalent yield = muni yield / (1 - marginal tax rate)
 ```
 
-**政策风险**：2023年城投化债政策后分化加剧，关注：
-- 一揽子化债进度
-- 平台转型（城投转企业）
-- 区域名单管理政策
+**Policy risk**: after the 2008-2013 stress period (Detroit, Puerto Rico, Chapter 9 filings), watch:
+- State oversight and emergency-manager laws
+- Pension-reform progress
+- Changes to the federal tax exemption or SALT deduction rules
 
 ---
 
-## 三、利率风险管理
+## 3. Interest-Rate Risk Management
 
-### 3.1 久期体系
+### 3.1 Duration Framework
 
-#### Macaulay Duration（麦考利久期）
+#### Macaulay Duration
 
-时间加权现金流现值之和，单位为"年"：
+Present-value-weighted average time to cash flows, in years:
 ```
-D_mac = Σ [t × CF_t/(1+y)^t] / P
+D_mac = sum [t x CF_t/(1+y)^t] / P
 ```
 
-#### Modified Duration（修正久期）
+#### Modified Duration
 
-利率敏感性度量：
+Interest-rate sensitivity measure:
 ```
 D_mod = D_mac / (1 + y/m)
-ΔP ≈ -D_mod × P × Δy
+dP ~ -D_mod x P x dy
 ```
 
-#### Effective Duration（有效久期）
+#### Effective Duration
 
-适用于含权债券（可赎回债、MBS等）：
+For bonds with embedded options (callables, MBS, etc.):
 ```
-D_eff = (P_down - P_up) / (2 × P_0 × Δy)
+D_eff = (P_down - P_up) / (2 x P_0 x dy)
 ```
-其中 P_down/P_up 为利率下移/上移Δy后的价格。
+where P_down / P_up are the prices after rates move down / up by dy.
 
-#### Dollar Duration（久期金额）
-
-```
-Dollar Duration = D_mod × P × 面值
-```
-
----
-
-### 3.2 凸性（Convexity）
-
-衡量久期对利率的敏感性（二阶效应）：
+#### Dollar Duration
 
 ```
-C = Σ [t(t+1) × CF_t/(1+y)^(t+2)] / P
-
-价格精确估算：
-ΔP/P ≈ -D_mod·Δy + 0.5·C·(Δy)²
-```
-
-**凸性的价值**：正凸性使债券在利率下行时涨幅大于预期（利率上行时跌幅小于预期），因此正凸性债券比负凸性债券（如可赎回债、MBS）更受青睐。
-
----
-
-### 3.3 DV01（基点价值）
-
-利率变动1基点（0.01%）导致的价格变化：
-```
-DV01 = D_mod × P × 0.0001
-```
-
-组合层面：`Portfolio DV01 = Σ (DV01_i × 持仓量_i)`
-
-**用途**：利率对冲比率计算
-```
-对冲比率 = DV01_被对冲头寸 / DV01_对冲工具
+Dollar Duration = D_mod x P x face amount
 ```
 
 ---
 
-### 3.4 关键利率久期（Key Rate Duration, KRD）
+### 3.2 Convexity
 
-衡量收益率曲线各关键期限平行移动1bp对价格的影响：
-- 常用关键点：1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y
-- `KRD_i = -ΔP/(P × Δy_i)`（仅第i个关键利率变动1bp）
-- `Σ KRD_i ≈ D_mod`（各关键利率久期之和约等于修正久期）
+Measures the sensitivity of duration to rates (second-order effect):
 
-**应用**：
-- 识别组合对特定期限利率的暴露
-- 精确对冲非平行移动风险（扭曲/蝶式）
+```
+C = sum [t(t+1) x CF_t/(1+y)^(t+2)] / P
+
+Refined price estimate:
+dP/P ~ -D_mod*dy + 0.5*C*(dy)^2
+```
+
+**Value of convexity**: positive convexity makes a bond gain more than expected when rates fall (and lose less than expected when rates rise), so positively convex bonds are preferred to negatively convex ones (callables, MBS).
 
 ---
 
-### 3.5 免疫策略
+### 3.3 DV01 (Dollar Value of a Basis Point)
 
-**久期匹配（Duration Matching）**：
-使资产组合久期 = 负债久期，对利率平行移动免疫。
-条件：`Σ (w_i × D_i) = D_liability`
+Price change for a 1 basis point (0.01%) move in rates:
+```
+DV01 = D_mod x P x 0.0001
+```
 
-**现金流匹配（Cash Flow Matching）**：
-直接匹配每期现金流，彻底消除再投资风险，但灵活性差、成本高。
+Portfolio level: `Portfolio DV01 = sum (DV01_i x position_i)`
 
-**条件免疫（Contingent Immunization）**：
-当组合价值超过安全底线时主动管理，跌至底线时切换为被动免疫。
-
-**再平衡频率**：
-- 久期随时间漂移，需定期（季度/月度）再平衡
-- 利率大幅变动（>50bp）后立即再平衡
+**Use**: hedge-ratio calculation
+```
+Hedge ratio = DV01_position being hedged / DV01_hedging instrument
+```
 
 ---
 
-## 四、信用利差分析
+### 3.4 Key Rate Duration (KRD)
 
-### 4.1 信用利差的构成
+Measures the price impact of a 1bp move at each key maturity on the curve:
+- Common key tenors: 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y
+- `KRD_i = -dP/(P x dy_i)` (only the i-th key rate moves 1bp)
+- `sum KRD_i ~ D_mod` (key-rate durations sum to approximately the modified duration)
+
+**Applications**:
+- Identify portfolio exposure to specific maturities
+- Precisely hedge non-parallel shifts (twist / butterfly)
+
+---
+
+### 3.5 Immunization Strategies
+
+**Duration matching**:
+Set asset-portfolio duration = liability duration to immunize against parallel shifts.
+Condition: `sum (w_i x D_i) = D_liability`
+
+**Cash-flow matching**:
+Match each period's cash flow directly, eliminating reinvestment risk, but inflexible and expensive.
+
+**Contingent immunization**:
+Manage actively while portfolio value exceeds a safety floor; switch to passive immunization if it falls to the floor.
+
+**Rebalancing frequency**:
+- Duration drifts over time, so rebalance periodically (quarterly / monthly)
+- Rebalance immediately after a large rate move (> 50bp)
+
+---
+
+## 4. Credit-Spread Analysis
+
+### 4.1 Components of the Credit Spread
 
 ```
-信用利差（Credit Spread）= 违约风险溢价 + 流动性溢价 + 税收溢价（部分市场）
+Credit spread = default-risk premium + liquidity premium + tax premium (some markets)
 ```
 
-| 组成部分 | 影响因素 | 量化方式 |
+| Component | Drivers | Measurement |
 |----------|----------|----------|
-| 违约风险溢价 | 评级、行业、财务状况、宏观周期 | CDS报价、模型测算 |
-| 流动性溢价 | 发行规模、剩余期限、市场深度 | 买卖价差、换手率 |
-| 税收溢价 | 国债免税优惠（部分国家/投资者） | 利率差异分析 |
+| Default-risk premium | Rating, industry, financials, macro cycle | CDS quotes, model estimates |
+| Liquidity premium | Issue size, remaining maturity, market depth | Bid-ask spread, turnover |
+| Tax premium | Tax exemption on government bonds (some countries / investors) | Yield-differential analysis |
 
-**利差衡量基准**：
-- 国际市场：G-Spread（vs 国债）、I-Spread（vs 掉期）、Z-Spread（零息利差）、OAS（期权调整利差）
-- 中国市场：信用利差通常对比国债或AAA城投
+**Spread benchmarks**:
+- G-spread (vs Treasuries), I-spread (vs swaps), Z-spread (zero-volatility spread), OAS (option-adjusted spread)
+- US practice: IG bonds quoted as a spread to the nearest on-the-run Treasury; HY bonds quoted on price or yield-to-worst
 
-**OAS（Option-Adjusted Spread）**：
-剥离嵌入期权价值后的信用利差，适用于含权债比较：
+**OAS (Option-Adjusted Spread)**:
+Credit spread after stripping out the embedded option value; used to compare bonds with embedded options:
 ```
-P = Σ CF_t / (1 + r_t + OAS)^t
+P = sum CF_t / (1 + r_t + OAS)^t
 ```
 
 ---
 
-### 4.2 信用利差曲线形态
+### 4.2 Credit-Spread Curve Shapes
 
-**正斜率**（常见）：长期利差 > 短期利差，反映期限不确定性叠加。
+**Upward sloping** (common): long-term spreads > short-term spreads, reflecting accumulating uncertainty over time.
 
-**平坦/倒挂**：
-- 市场对长期信用风险乐观（平坦）
-- 短期流动性危机/再融资困境（倒挂），警示信号
+**Flat / inverted**:
+- Market is optimistic about long-term credit risk (flat)
+- Short-term liquidity crisis / refinancing distress (inverted), a warning signal
 
-**信用利差与国债收益率的相关性**：
-- 经济扩张：信用利差收窄（风险偏好上升）
-- 经济衰退/信用事件：信用利差走阔
-- "逃向质量"效应：国债收益率下行+信用利差扩大，双重打击高收益债
-
----
-
-### 4.3 信用利差变化的驱动因素
-
-**宏观因素**：
-- GDP增速、PMI：预期改善→利差收窄
-- 货币政策宽松：流动性溢价下降
-- 信用事件（违约潮）：系统性利差走阔
-
-**行业因素**：
-- 行业政策（如地产调控、城投化债）
-- 行业景气周期
-- 再融资环境
-
-**个券因素**：
-- 评级调整（下调→利差跳升）
-- 财务数据变化
-- 到期压力（临近到期→流动性利差增加）
+**Correlation between credit spreads and Treasury yields**:
+- Expansion: spreads tighten (rising risk appetite)
+- Recession / credit event: spreads widen
+- "Flight to quality": Treasury yields fall while spreads widen, a double hit for high-yield bonds
 
 ---
 
-### 4.4 信用利差交易策略
+### 4.3 Drivers of Credit-Spread Changes
 
-**利差压缩交易（Spread Tightening）**：
-做多被低估（高利差）信用债，做空国债对冲利率风险。
-- 适用场景：经济复苏初期、央行宽松周期
+**Macro factors**:
+- GDP growth, PMI: improving expectations -> spreads tighten
+- Monetary easing: liquidity premium falls
+- Credit events (default waves): systemic spread widening
 
-**利差扩大交易（Spread Widening）**：
-做空信用债（通过CDS），做多国债。
-- 适用场景：经济下行、信用事件频发
+**Industry factors**:
+- Sector policy (e.g. energy regulation, bank capital rules, real-estate cycles)
+- Industry cycle
+- Refinancing environment
 
-**跨评级利差交易**：
-做多高收益/做空投资级（利差压缩时），或相反。
-
-**蝶式利差交易（Butterfly）**：
-做多中期、做空短端和长端，获利于信用曲线中段的相对价值。
-
-**中国特色工具**：
-- 信用风险缓释工具（CRMW/CDS）：对冲信用风险
-- 国债期货：对冲利率久期风险
+**Issuer-specific factors**:
+- Rating actions (downgrade -> spread jumps, especially at the fallen-angel boundary)
+- Changes in financial data
+- Maturity pressure (approaching maturity -> liquidity premium rises)
 
 ---
 
-## 五、Python 实现（quantlib）
+### 4.4 Credit-Spread Trading Strategies
 
-本章的模型**已经是仓库里的实测代码**，位于 `src/quantlib/fixedincome.py`（债券数学 + 曲线拟合）
-与 `src/quantlib/credit.py`（Altman Z / Merton-KMV / 利差）。两个模块都有对应的
-`tests/quantlib/test_fixedincome.py`、`tests/quantlib/test_credit.py`，久期与 DV01 是对
-"重新定价 ±1bp" 逐点核过的。
+**Spread tightening trade**:
+Long undervalued (wide-spread) credit, short Treasuries to hedge rate risk.
+- Suited to: early recovery, Fed easing cycles
 
-**直接 import 调用，不要在会话里重写这些公式。** 手写一遍既拿不到测试保障，也不可复现。
+**Spread widening trade**:
+Short credit (via CDS or HY ETFs such as HYG), long Treasuries.
+- Suited to: economic downturn, frequent credit events
 
-一律的单位约定：利率与比率是小数（`0.05` 表示 5%），期限与时间跨度是**年**，
-久期/凸性的返回值是**年 / 年²**（不是付息期数），带 `_bp` 后缀的才是基点。
+**Cross-rating spread trade**:
+Long high yield / short investment grade (when spreads are compressing), or the reverse.
 
-### 5.1 债券定价、久期与 DV01
+**Butterfly spread trade**:
+Long the belly, short the short and long ends, capturing relative value in the middle of the credit curve.
+
+**Common US instruments**:
+- Single-name CDS and CDX indices (CDX IG / CDX HY): hedge credit risk
+- Treasury futures (ZT / ZF / ZN / ZB / UB) and SOFR swaps: hedge duration risk
+- Credit ETFs (LQD / HYG / JNK) and TRS: quick beta exposure
+
+---
+
+## 5. Python Implementation (quantlib)
+
+The models in this chapter **are already tested code in the repository**, in `src/quantlib/fixedincome.py` (bond math + curve fitting)
+and `src/quantlib/credit.py` (Altman Z / Merton-KMV / spreads). Both modules have matching
+`tests/quantlib/test_fixedincome.py` and `tests/quantlib/test_credit.py`; duration and DV01 are verified point by point
+against a "reprice at +/-1bp" check.
+
+**Import and call directly; do not rewrite these formulas in the session.** A hand-written copy has no test coverage and is not reproducible.
+
+Unit conventions throughout: rates and ratios are decimals (`0.05` means 5%), maturities and time spans are in **years**,
+duration / convexity return values are in **years / years^2** (not coupon periods), and only names with a `_bp` suffix are in basis points.
+
+### 5.1 Bond Pricing, Duration and DV01
 
 ```python
 from src.quantlib.fixedincome import (
@@ -545,32 +547,32 @@ from src.quantlib.fixedincome import (
 face, coupon, ytm, n, freq = 100, 0.05, 0.04, 5, 1
 
 price = bond_price(face, coupon, ytm, n, freq)          # 104.4518
-ytm_solve(price, face, coupon, n, freq)                 # 0.04（价格反解 YTM）
+ytm_solve(price, face, coupon, n, freq)                 # 0.04 (solve YTM from price)
 
-macaulay_duration(face, coupon, ytm, n, freq)           # 4.5571 年
-modified_duration(face, coupon, ytm, n, freq)           # 4.3818 年
-convexity(face, coupon, ytm, n, freq)                   # 24.4766 年²
-dv01(face, coupon, ytm, n, freq, par_amount=1_000_000)  # 457.69 元/bp
+macaulay_duration(face, coupon, ytm, n, freq)           # 4.5571 years
+modified_duration(face, coupon, ytm, n, freq)           # 4.3818 years
+convexity(face, coupon, ytm, n, freq)                   # 24.4766 years^2
+dv01(face, coupon, ytm, n, freq, par_amount=1_000_000)  # 457.69 dollars per bp
 ```
 
-**参数要点**
+**Parameter notes**
 
-| 参数 | 说明 |
+| Parameter | Description |
 |------|------|
-| `freq` | 每年付息次数，`1`=年付、`2`=半年付。所有函数都接受，绝不写死 |
-| `compounding` | `"discrete"`（默认）或 `"continuous"`。连续复利下修正久期恒等于 Macaulay 久期 |
-| `par_amount` | `dv01` 的持仓面值，默认 100 万；对冲的市值按 `par_amount * price / face` 计 |
-| `bracket` | `ytm_solve` 的求根区间，默认 `(-0.5, 10.0)`，覆盖所有可交易债券 |
+| `freq` | Coupon payments per year, `1` = annual, `2` = semi-annual. Every function accepts it; never hard-code |
+| `compounding` | `"discrete"` (default) or `"continuous"`. Under continuous compounding modified duration equals Macaulay duration |
+| `par_amount` | Position face value for `dv01`, default 1 million; the market value to hedge is `par_amount * price / face` |
+| `bracket` | Root-search interval for `ytm_solve`, default `(-0.5, 10.0)`, covering every tradable bond |
 
-含权债（可赎回债、MBS）的现金流会随利率移动，解析久期不适用，改用重新定价法：
+For bonds with embedded options (callables, MBS) the cash flows move with rates, so analytic duration does not apply; use the repricing approach:
 
 ```python
 d_eff = effective_duration(reprice=lambda y: my_oas_model(y), yield_level=0.04, bump=1e-4)
 ```
 
-`reprice` 必须自带赎回/早偿逻辑；`effective_duration` 只负责 `(P_down - P_up) / (2·P₀·Δy)`。
+`reprice` must carry its own call / prepayment logic; `effective_duration` only computes `(P_down - P_up) / (2*P_0*dy)`.
 
-### 5.2 收益率曲线拟合（Nelson-Siegel / Svensson）
+### 5.2 Yield Curve Fitting (Nelson-Siegel / Svensson)
 
 ```python
 import numpy as np
@@ -581,22 +583,22 @@ yields     = np.array([0.019, 0.020, 0.022, 0.024, 0.025, 0.027, 0.028, 0.029, 0
 
 fit = fit_yield_curve(maturities, yields, model="svensson")
 fit.params      # (beta0, beta1, beta2, beta3, lambda1, lambda2)
-fit.rmse        # 拟合残差（小数，与输入同单位）
-fit(4.5)        # 任意期限插值 -> 该点即期利率
-fit([1, 5, 10]) # 也接受数组
+fit.rmse        # fit residual (decimal, same unit as the input)
+fit(4.5)        # interpolate any maturity -> spot rate at that point
+fit([1, 5, 10]) # arrays are accepted too
 ```
 
-`fit_yield_curve` 返回一个 **`CurveFit` 对象**（不是 `(params, func)` 元组）：它本身可调用，
-同时带 `model` / `params` / `rmse` 三个只读字段。`model` 取 `"nelson_siegel"`（4 参数）
-或 `"svensson"`（6 参数，双曲率因子）。
+`fit_yield_curve` returns a **`CurveFit` object** (not a `(params, func)` tuple): it is callable
+and carries three read-only fields, `model` / `params` / `rmse`. `model` is `"nelson_siegel"` (4 parameters)
+or `"svensson"` (6 parameters, two curvature factors).
 
-拟合方式是**可分离最小二乘**：给定衰减参数 λ 后 β 是线性的，用 OLS 精确求解，
-只对 1~2 个 λ 做网格 + Nelder-Mead 搜索。这一点很要紧——对全部参数一起做单点起始的
-L-BFGS-B（本 skill 早先模板的做法）**连自己生成的曲线都还原不回来**：
-在 10 个期限的无噪 Nelson-Siegel 曲线上它停在 RMSE 6.4e-4（6.4bp），
-而现在这个实现是 4.0e-14。
+The fit uses **separable least squares**: given the decay parameters lambda, the betas are linear and solved exactly by OLS,
+with only the 1~2 lambdas searched by grid + Nelder-Mead. This matters — a single-start L-BFGS-B over all parameters at once
+(what an earlier template in this skill did) **could not even recover a curve it generated itself**:
+on a noise-free 10-tenor Nelson-Siegel curve it stopped at RMSE 6.4e-4 (6.4bp),
+whereas the current implementation reaches 4.0e-14.
 
-需要直接按参数取值（例如做因子分解、做情景模拟）时用底层函数：
+When you need to evaluate the curve directly from parameters (e.g. factor decomposition, scenario simulation), use the underlying functions:
 
 ```python
 nelson_siegel(tau=[1, 5, 10], beta0=0.045, beta1=-0.02, beta2=0.03, lambda1=2.5)
@@ -604,88 +606,88 @@ svensson(tau=5.0, beta0=0.05, beta1=-0.03, beta2=0.04, beta3=-0.02,
          lambda1=1.2, lambda2=8.0)
 ```
 
-`beta0` 是水平因子（长端渐近利率），`beta0 + beta1` 是瞬时短端利率，
-`beta2` / `beta3` 是曲率因子，`lambda*` 是衰减速度（年）。传标量返回标量，传数组返回数组。
+`beta0` is the level factor (long-end asymptotic rate), `beta0 + beta1` is the instantaneous short rate,
+`beta2` / `beta3` are curvature factors, and `lambda*` are decay speeds (years). Scalars in, scalars out; arrays in, arrays out.
 
-### 5.3 Altman Z-Score 计算
+### 5.3 Altman Z-Score Calculation
 
 ```python
 from src.quantlib.credit import altman_z_score
 
 z = altman_z_score(
-    working_capital=200,      # X1 分子：流动资产 - 流动负债
-    retained_earnings=300,    # X2 分子：留存收益
-    ebit=150,                 # X3 分子：息税前利润
-    equity_value=900,         # X4 分子：original 用股权市值，prime/double_prime 用账面净资产
-    total_liabilities=600,    # X4 分母：全部负债的账面值
-    total_assets=1000,        # X1/X2/X3/X5 的分母
-    revenue=1200,             # X5 分子；double_prime 不需要，可省略
+    working_capital=200,      # X1 numerator: current assets - current liabilities
+    retained_earnings=300,    # X2 numerator: retained earnings
+    ebit=150,                 # X3 numerator: earnings before interest and tax
+    equity_value=900,         # X4 numerator: market cap for original, book equity for prime/double_prime
+    total_liabilities=600,    # X4 denominator: book value of all liabilities
+    total_assets=1000,        # denominator for X1/X2/X3/X5
+    revenue=1200,             # X5 numerator; not needed for double_prime, may be omitted
     model="original",         # original | prime | double_prime
 )
 
 z.z_score            # 3.255
 z.zone               # "safe" | "grey" | "distress"
-z.label_zh           # "安全区（低违约风险）"
+z.label_zh           # localized zone label string returned by the library
 z.components         # {"x1": 0.20, "x2": 0.30, "x3": 0.15, "x4": 1.50, "x5": 1.20}
 z.safe_threshold     # 2.99
 z.distress_threshold # 1.81
 ```
 
-三个变体的系数与临界值在 `ALTMAN_MODELS` 里，与 §1.2 的表格一一对应：
+The coefficients and cut-offs of the three variants live in `ALTMAN_MODELS` and match the table in section 1.2 one for one:
 
-| `model` | 适用对象 | 系数 (X1..X5) | 安全 / 危险 |
+| `model` | Applies To | Coefficients (X1..X5) | Safe / Distress |
 |---------|----------|---------------|-------------|
-| `original` | 上市制造业（Altman 1968） | 1.2 / 1.4 / 3.3 / 0.6 / 1.0 | > 2.99 / < 1.81 |
-| `prime`（Z'） | 私有企业，X4 改用账面净资产 | 0.717 / 0.847 / 3.107 / 0.420 / 0.998 | > 2.90 / < 1.23 |
-| `double_prime`（Z''） | 非制造业 / 新兴市场，去掉 X5 | 6.56 / 3.26 / 6.72 / 1.05 / — | > 2.60 / < 1.10 |
+| `original` | Listed manufacturers (Altman 1968) | 1.2 / 1.4 / 3.3 / 0.6 / 1.0 | > 2.99 / < 1.81 |
+| `prime` (Z') | Private companies, X4 uses book equity | 0.717 / 0.847 / 3.107 / 0.420 / 0.998 | > 2.90 / < 1.23 |
+| `double_prime` (Z'') | Non-manufacturers / emerging markets, drops X5 | 6.56 / 3.26 / 6.72 / 1.05 / — | > 2.60 / < 1.10 |
 
-> **X4 的分母是「全部负债」，不是「有息负债」。** §1.2 的变量表写的是"总负债账面值"，
-> 参数名 `total_liabilities` 与模型定义一致。用有息负债代入会系统性高估 Z 值。
+> **The X4 denominator is total liabilities, not interest-bearing debt.** The variable table in section 1.2 says "book value of total liabilities",
+> and the parameter name `total_liabilities` matches the model definition. Substituting interest-bearing debt systematically overstates Z.
 
-同一份报表在三个变体下给出的分区可以不同（上例：`original` 安全区、`prime` 灰色区），
-这正是重新标定的意义，不是矛盾。
+The same financials can land in different zones under the three variants (in the example above: `original` safe, `prime` grey);
+that is the point of recalibration, not a contradiction.
 
-### 5.4 信用利差分析
+### 5.4 Credit-Spread Analysis
 
 ```python
 from src.quantlib.credit import credit_spread_analysis, spread_term_structure
 
 df = credit_spread_analysis(
-    bond_yields=bond_ytm_series,       # pd.Series，索引=日期
-    risk_free_yields=cgb_ytm_series,   # 必须与上面同一个索引
-    window=252,                        # 滚动窗口（交易日）
-    lookback_periods=21,               # 慢速变化列的回溯期
-    signal_z=1.5,                      # 触发 rich/cheap 的 |z| 阈值
+    bond_yields=bond_ytm_series,       # pd.Series indexed by date
+    risk_free_yields=ust_ytm_series,   # must share the same index as above
+    window=252,                        # rolling window (trading days)
+    lookback_periods=21,               # lookback for the slow-change column
+    signal_z=1.5,                      # |z| threshold that triggers rich/cheap
     input_unit="percent",              # percent | decimal | bp
 )
 ```
 
-返回的 DataFrame 列固定为：`spread_bp`、`rolling_mean_bp`、`rolling_std_bp`、`z_score`、
-`historical_percentile`、`change_1p_bp`、`change_lookback_bp`、`signal`。
-`signal` 取 `"rich"`（利差偏低、偏贵）/ `"neutral"` / `"cheap"`（利差偏高、偏便宜）。
+The returned DataFrame always has the columns `spread_bp`, `rolling_mean_bp`, `rolling_std_bp`, `z_score`,
+`historical_percentile`, `change_1p_bp`, `change_lookback_bp`, `signal`.
+`signal` is `"rich"` (spread low, expensive) / `"neutral"` / `"cheap"` (spread high, cheap).
 
-> **`historical_percentile` 是全样本排名，带前视偏差，不能当回测信号用。** 它把每一行
-> 和它**之后**的行一起排序——同一天的分位数会随着新数据到来而改变（实测：同一行在 50 行
-> 切片上是 0.02，在 100 行上变成 0.01）。这是原模板的行为，保留是为了不静默改变口径。
-> `z_score` 与 `signal` 走滚动窗口，是因果的，要做信号用这两个。
+> **`historical_percentile` is a full-sample rank with look-ahead bias and must not be used as a backtest signal.** It ranks each row
+> together with the rows **after** it, so the same day's percentile changes as new data arrives (measured: the same row is 0.02 on a
+> 50-row slice and 0.01 on 100 rows). This is the original template's behavior, kept so the definition does not change silently.
+> `z_score` and `signal` use a rolling window and are causal; use those two for signals.
 
 ```python
 grid = spread_term_structure(
-    issuers={"AAA城投": {1: 0.025, 3: 0.028, 5: 0.032},
-             "AA城投":  {1: 0.032, 3: 0.041, 5: 0.055}},
+    issuers={"AAA muni": {1: 0.025, 3: 0.028, 5: 0.032},
+             "A muni":   {1: 0.032, 3: 0.041, 5: 0.055}},
     risk_free_curve={1: 0.020, 3: 0.022, 5: 0.025},
-    input_unit="decimal",   # 注意默认值与上面那个函数不同
+    input_unit="decimal",   # note: the default differs from the function above
     decimals=1,
 )
-# 行=发行人，列=1Y_spread_bp / 3Y_spread_bp / 5Y_spread_bp
+# rows = issuers, columns = 1Y_spread_bp / 3Y_spread_bp / 5Y_spread_bp
 ```
 
-> **输入单位必须自己确认。** 两个函数的历史默认值不一致：`credit_spread_analysis`
-> 默认收益率是**百分数**（`3.2` 表示 3.2%），`spread_term_structure` 默认是**小数**（`0.032`）。
-> 默认值保留了原模板的行为，但 `input_unit` 现在是显式参数——喂数据前先看清楚手里的序列是哪一种，
-> 搞反就是 100 倍的利差。
+> **Confirm the input unit yourself.** The two functions have different historical defaults: `credit_spread_analysis`
+> defaults to yields in **percent** (`3.2` means 3.2%), `spread_term_structure` defaults to **decimal** (`0.032`).
+> The defaults preserve the original template's behavior, but `input_unit` is now an explicit parameter — check which kind of series
+> you hold before feeding it in; get it backwards and the spread is off by 100x.
 
-### 5.5 Merton 结构化模型与 KMV
+### 5.5 Merton Structural Model and KMV
 
 ```python
 from src.quantlib.credit import (
@@ -694,216 +696,230 @@ from src.quantlib.credit import (
 )
 
 m = merton_model(
-    equity_value=100,   # 股权市值
-    equity_vol=0.40,    # 股权年化波动率
-    debt_face=100,      # 债务面值（简化为单笔零息债）
-    risk_free=0.03,     # 连续复利无风险利率
-    horizon=1.0,        # 债务到期年限
-    asset_drift=None,   # 距违约距离用的资产漂移；None = 用 risk_free（风险中性口径）
+    equity_value=100,   # market value of equity
+    equity_vol=0.40,    # annualized equity volatility
+    debt_face=100,      # face value of debt (simplified to a single zero-coupon bond)
+    risk_free=0.03,     # continuously compounded risk-free rate
+    horizon=1.0,        # years to debt maturity
+    asset_drift=None,   # asset drift for distance to default; None = use risk_free (risk-neutral)
 )
 
-m.asset_value           # 197.04  反推出的资产价值
-m.asset_vol             # 0.2030  反推出的资产波动率
-m.distance_to_default   # 3.3868  asset_drift=None 时等于 d2
-m.default_probability   # 0.000354  风险中性违约概率 N(-d2)
+m.asset_value           # 197.04  implied asset value
+m.asset_vol             # 0.2030  implied asset volatility
+m.distance_to_default   # 3.3868  equals d2 when asset_drift=None
+m.default_probability   # 0.000354  risk-neutral default probability N(-d2)
 m.credit_spread_bp      # 0.176 bp
 ```
 
-联立方程（§1.3 的两式）在 `merton_asset_solve` 里解，且是在**对数空间**求解的，
-所以根不会跑到负资产或负波动率上；不收敛会直接抛 `ValueError`，不会静默返回垃圾解。
+The simultaneous equations (the two in section 1.3) are solved in `merton_asset_solve`, and they are solved in **log space**,
+so the root cannot land on negative asset value or negative volatility; if it fails to converge it raises `ValueError` rather than silently returning garbage.
 
-**Merton 与 KMV 的 DD 是两个不同的量，不要混用**：
+**Merton DD and KMV DD are two different quantities; do not mix them**:
 
 ```python
-# Merton：对数空间、带漂移与期限
+# Merton: log space, with drift and horizon
 distance_to_default(asset_value=200, asset_vol=0.25, default_point=100,
                     horizon=2.0, drift=0.06)
 
-# KMV：线性缺口，无期限无漂移，违约点只含短债 + 部分长债
+# KMV: linear gap, no horizon or drift; default point = short-term debt + part of long-term debt
 dp = kmv_default_point(short_term_debt=100, long_term_debt=200,
                        long_term_weight=0.5)      # -> 200
 kmv_distance_to_default(asset_value=1000, asset_vol=0.25, default_point=dp)  # -> 3.2
 
-edf_reference_band(3.2)   # -> (0.001, 0.01)，即 §8 表里的 0.1%–1% 档
+edf_reference_band(3.2)   # -> (0.001, 0.01), i.e. the 0.1%-1% band in the section 8 table
 ```
 
-> `edf_reference_band` 只是把 §8 那张"DD → EDF"经验表做成了查表函数。
-> 真正的 KMV EDF 来自穆迪的专有违约数据库，这里的输出只能当**量级校验**，
-> 绝不能当作已标定的违约概率报出去。
+> `edf_reference_band` simply turns the "DD -> EDF" rule-of-thumb table in section 8 into a lookup function.
+> Real KMV EDFs come from Moody's proprietary default database; treat this output as an **order-of-magnitude check** only,
+> never report it as a calibrated default probability.
 
-**风险中性 vs 真实世界**：`asset_drift` 只影响 `distance_to_default`，不影响 `d2`、
-`default_probability` 和 `credit_spread`——后三者按定义就是风险中性的。想看真实世界口径，
-传一个预期资产回报进去，然后配 `edf_reference_band` 读档，不要拿 `N(-dd)` 当 EDF 报。
+**Risk-neutral vs real-world**: `asset_drift` only affects `distance_to_default`, not `d2`,
+`default_probability`, or `credit_spread` — the latter three are risk-neutral by definition. For a real-world view,
+pass in an expected asset return and then read the band with `edf_reference_band`; do not report `N(-dd)` as an EDF.
 
 ---
 
-## 六、中国固收市场特色
+## 6. US Fixed-Income Market Specifics
 
-### 6.1 市场结构
+### 6.1 Market Structure
 
-#### 银行间市场 vs 交易所市场
+#### Dealer (OTC) Market vs Exchange-Traded Products
 
-| 维度 | 银行间市场（CFETS） | 交易所市场（上交所/深交所） |
+| Dimension | Dealer / OTC Market | Exchange-Traded (ETFs, futures, listed notes) |
 |------|---------------------|--------------------------|
-| 监管机构 | 人民银行 | 证监会 |
-| 主要参与者 | 银行、保险、基金、外资 | 券商、基金、个人投资者 |
-| 交易方式 | 询价（OTC）+ 匿名点击 | 集中撮合 + 大宗交易 |
-| 主要品种 | 国债、政金债、信用债、ABS | 企业债、公司债、可转债 |
-| 规模占比 | ~90%（以交易量计） | ~10% |
-| 结算方式 | T+0/T+1（DVP） | T+1 |
-| 流动性 | 高（国债/政金债） | 高（可转债）/低（纯债） |
+| Regulator | SEC / FINRA (TRACE reporting), Treasury / Fed for government debt | SEC (ETFs), CFTC (futures) |
+| Main participants | Banks, dealers, insurers, asset managers, foreign central banks | Retail and institutional investors via brokers |
+| Trading method | Request-for-quote, dealer runs, electronic platforms (MarketAxess, Tradeweb) | Central limit order book |
+| Main products | Treasuries, agencies, corporates, munis, MBS / ABS | Bond ETFs, Treasury futures, baby bonds |
+| Share of volume | ~95% of bond notional | ~5% (but the retail-accessible path) |
+| Settlement | T+1 (Treasuries, corporates since 2024) | T+1 |
+| Liquidity | High (on-the-run Treasuries) / low (off-the-run corporates, small munis) | High (major ETFs) |
 
-#### 主要债券品种
+#### Major Bond Types
 
-| 品种 | 发行主体 | 监管/注册 | 信用风险 |
+| Type | Issuer | Regulation / Registration | Credit Risk |
 |------|----------|-----------|----------|
-| 国债（CGBs） | 财政部 | 无限制 | 无（主权信用） |
-| 地方政府债 | 各省市政府 | 财政部审批 | 极低 |
-| 政策性银行债（国开/农发/进出口） | 政策行 | 无限制 | 极低（准主权） |
-| 同业存单（NCD） | 银行 | 央行 | 低（银行信用） |
-| 超短期融资券（SCP）/ 短融（CP）/ 中票（MTN） | 非金融企业 | 交易商协会（NAFMII） | 中 |
-| 企业债 | 企业 | 发改委 | 中高 |
-| 公司债 | 上市公司 | 证监会 | 中高 |
-| 城投债 | 地方融资平台 | 多元 | 中高（隐性政府背书） |
-| ABS/ABN | SPV | NAFMII/证监会 | 取决于底层资产 |
+| Treasuries (bills / notes / bonds / TIPS) | US Treasury | None | None (sovereign) |
+| Municipal bonds (GO / revenue) | States, cities, counties, agencies | MSRB / SEC Rule 15c2-12 | Very low to medium |
+| Agency debt and agency MBS | Fannie Mae, Freddie Mac, Ginnie Mae, FHLB | Implicit / explicit federal support | Very low (quasi-sovereign) |
+| Certificates of deposit / commercial paper | Banks, corporations | FDIC (CDs) / SEC exempt (CP) | Low |
+| Investment-grade corporates | Corporations rated BBB- or better | SEC registration or 144A | Medium |
+| High-yield corporates / leveraged loans | Corporations rated BB+ or below | SEC or 144A / private | Medium-high |
+| Private credit / direct lending | Non-bank lenders, BDCs | Lightly regulated | Medium-high |
+| ABS / CLO / non-agency MBS | SPVs | SEC Reg AB II | Depends on collateral and tranche |
 
 ---
 
-### 6.2 城投债深度分析要点
+### 6.2 Municipal Bond Deep-Dive Points
 
-**一级市场分析**（发行定价）：
-1. 核查发行人层级和区域（省/市/区县）
-2. 审查主业占比（基础设施业务vs商业化业务比例）
-3. 评估区域一般公共预算收入和政府负债率
-4. 分析近3年城投流转资产的真实性（往来款异常）
+**Primary-market analysis** (new-issue pricing):
+1. Verify the issuer type and legal security (GO vs revenue vs appropriation, state vs local)
+2. Review the revenue base (tax revenue vs enterprise revenue such as water, power, toll roads)
+3. Assess general-fund balance, reserves, and debt-to-revenue
+4. Analyze 3 years of audited financials (ACFR) for one-time transfers and interfund borrowing
 
-**二级市场分析**（持仓估值）：
-1. 跟踪利差变化（vs 同评级同期限）
-2. 关注舆情事件（技术性违约/商票逾期/评级下调）
-3. 监测再融资节奏（到期压力 vs 新发节奏）
-4. 关注区域政策（化债名单、债务置换进度）
+**Secondary-market analysis** (portfolio valuation):
+1. Track spread changes vs the MMD / AAA muni benchmark curve for the same maturity
+2. Watch news flow (missed payments, rating downgrades, pension litigation)
+3. Monitor refinancing cadence (maturity wall vs new-issue calendar)
+4. Watch state-level policy (oversight boards, bankruptcy eligibility under Chapter 9)
 
-**风险预警信号（红线）**：
-- 货币资金/短期债务 < 0.3
-- 非标融资/有息负债 > 40%
-- 商票逾期被纳入系统（票据失信名单）
-- 所在区域城投整体再融资受阻
-- 管理层人事变动叠加区域评级负面展望
+**Warning signals (red lines)**:
+- General-fund reserves / expenditures < 5%
+- Debt-service coverage < 1.0x on revenue bonds
+- Missed or late continuing disclosure filings on EMMA
+- Issuer's region losing population and employers
+- Management turnover combined with a negative rating outlook
 
 ---
 
-### 6.3 理财/资管产品信用分析
+### 6.3 Bond Fund and Structured Product Credit Analysis
 
-**净值化转型后的底层穿透分析**：
-- 混合型理财：需分别评估权益端（市值波动）和固收端（信用风险）
-- 固收+策略：主体80%+债券，20%-以内权益/可转债
-- FOF型理财：两层嵌套穿透，需评估底层基金持仓
+**Look-through analysis of fund holdings**:
+- Balanced / multi-asset funds: assess the equity sleeve (market risk) and fixed-income sleeve (credit risk) separately
+- "Core-plus" strategies: 80%+ core bonds, up to 20% high yield / EM / convertibles
+- Fund-of-funds and target-date funds: two layers of nesting; assess the underlying funds' holdings
 
-**流动性分析框架**：
+**Liquidity analysis framework**:
 ```
-产品层面流动性 = f(底层资产流动性, 赎回条款, 摊余成本法 vs 市值法)
+Fund-level liquidity = f(underlying asset liquidity, redemption terms, amortized-cost vs mark-to-market accounting)
 ```
-- 摊余成本法：价格稳定但隐藏风险（不适用净值化产品）
-- 市值法：反映真实价值，但波动暴露可能引发赎回潮
+- Amortized cost: stable prices but hidden risk (only permitted for government money-market funds)
+- Mark-to-market: reflects true value, but visible volatility can trigger redemption runs (e.g. March 2020 bond-fund outflows)
 
-**底层信用评估步骤**：
-1. 获取债券持仓明细（季报/半年报披露）
-2. 按评级/行业/城投/非城投分类
-3. 计算加权信用利差
-4. 识别集中度风险（单券 > 5%为高集中度）
-5. 评估流动性梯度（高流动→低流动覆盖度）
+**Steps for assessing underlying credit**:
+1. Obtain the bond holdings (quarterly / semi-annual reports, N-PORT filings)
+2. Classify by rating / sector / muni vs corporate / securitized
+3. Compute the weighted average credit spread
+4. Identify concentration risk (single issue > 5% is high concentration)
+5. Assess the liquidity ladder (coverage from most to least liquid)
 
 ---
 
-### 6.4 违约案例分析方法论
+### 6.4 Default Case Study Methodology
 
-**违约类型**：
-| 类型 | 特征 | 中国典型案例 |
+**Default types**:
+| Type | Feature | Typical US Cases |
 |------|------|------------|
-| 流动性违约 | 资产健康但现金流断裂 | 部分中小房企 |
-| 技术性违约 | 触发条款（交叉违约/加速到期） | 多见于弱资质主体 |
-| 经营性违约 | 主业恶化导致还款能力下降 | 永煤、华晨（2020） |
-| 欺诈性违约 | 财务造假/资产腾挪 | 康美药业、蓝盛博 |
+| Liquidity default | Sound assets but cash flow breaks | Bear Stearns (2008), SVB (2023, bank run) |
+| Technical default | Covenant trigger (cross-default / acceleration) | Common among weaker leveraged-loan issuers |
+| Operational default | Core business deterioration erodes repayment capacity | Sears (2018), Hertz (2020) |
+| Fraudulent default | Accounting fraud / asset stripping | Enron (2001), WorldCom (2002) |
 
-**违约前沿信号（Precursor Signals）**：
+**Precursor signals**:
 
 ```
-财务层面：
-  - 应收账款/总资产 异常增高（虚增收入）
-  - 货币资金余额高但受限比例高
-  - 商誉/无形资产占比持续增大
-  - 关联方交易占比异常
+Financial:
+  - Receivables / total assets abnormally high (inflated revenue)
+  - Large cash balance but a high restricted share
+  - Goodwill / intangibles share keeps growing
+  - Abnormal share of related-party transactions
 
-市场层面：
-  - 二级市场价格持续下跌（跌破90）
-  - 信用利差快速走阔（单周>50bp）
-  - 主承销商更换或不参与后续发行
-  - CDS报价（如有）快速上升
+Market:
+  - Bond price falls persistently (below 90)
+  - Credit spread widens rapidly (> 50bp in a week)
+  - Lead underwriter changes or declines to participate in new issues
+  - CDS quotes (if any) rise sharply
 
-评级层面：
-  - 评级列入负面观察
-  - 多家评级机构下调
-  - 展望由稳定下调至负面
+Rating:
+  - Placed on negative watch
+  - Downgrades by multiple agencies
+  - Outlook cut from stable to negative
 ```
 
-**事后分析框架（Post-Default Analysis）**：
-1. 违约触发时点与资金流向重构
-2. 资产负债表"真实性"评估（区分真实资产 vs 账面资产）
-3. 债权优先级梳理（担保顺序、抵质押品）
-4. 处置预期回收率估算（Recovery Rate）
-5. 系统性风险传染路径（交叉持有、同类主体）
+**Post-default analysis framework**:
+1. Reconstruct the default trigger timing and cash flows
+2. Assess balance-sheet "reality" (real assets vs book assets)
+3. Map the priority of claims (guarantees, liens, collateral)
+4. Estimate expected recovery rate
+5. Trace systemic contagion paths (cross-holdings, similar issuers)
 
-**中国市场回收率参考**：
-- 城投债（技术性违约后化解）：接近100%
-- 房企违约：约20%-50%（取决于土储质量）
-- 工业企业违约：约30%-60%
-- 金融机构（非银）：约40%-70%（监管介入程度）
+**US recovery-rate references** (Moody's long-run averages):
+- Senior secured bank loans: about 60%-80%
+- Senior secured bonds: about 50%-60%
+- Senior unsecured bonds: about 35%-45%
+- Subordinated bonds: about 20%-30%
+- Municipal bonds (GO, post-restructuring): historically 60%-100%, but highly case-dependent
 
 ---
 
-## 七、与其他 Skill 的关联
+## 7. Relationship to Other Skills
 
-| 相关 Skill | 互补关系 |
+| Related Skill | Complementary Role |
 |------------|----------|
-| `convertible-bond` | 可转债转股期权部分由 convertible-bond skill 处理，本 skill 负责纯债定价和信用风险 |
-| `macro-analysis` | 宏观利率环境和信用周期判断由 macro skill 提供输入 |
-| `risk-management` | 组合层面信用风险（VaR/CVaR）参考 risk-management skill |
-| `equity-fundamental` | 信用分析与股权估值共享财务报表分析框架，Altman Z-Score两侧均适用 |
+| `convertible-bond` | The conversion-option component is handled by the convertible-bond skill; this skill handles straight-debt pricing and credit risk |
+| `macro-analysis` | The macro rate environment and credit-cycle view come from the macro skill |
+| `risk-management` | Portfolio-level credit risk (VaR / CVaR) is covered by the risk-management skill |
+| `equity-fundamental` | Credit analysis and equity valuation share the financial-statement framework; the Altman Z-Score applies on both sides |
 
 ---
 
-## 八、快速参考
+## 8. Quick Reference
 
-### 常用公式速查
+### Common Formula Cheat Sheet
 
 ```
-YTM 近似公式：
-  YTM ≈ [C + (F-P)/n] / [(F+P)/2]
+YTM approximation:
+  YTM ~ [C + (F-P)/n] / [(F+P)/2]
 
-久期与价格变化：
-  ΔP ≈ -D_mod × P × Δy + 0.5 × CX × P × (Δy)²
+Duration and price change:
+  dP ~ -D_mod x P x dy + 0.5 x CX x P x (dy)^2
 
-DV01 = D_mod × P × 0.0001 × 持仓面值
+DV01 = D_mod x P x 0.0001 x face amount
 
-信用利差 = 债券YTM - 同期限国债YTM
+Credit spread = bond YTM - Treasury YTM at the same maturity
 
-Z-Score 风险信号：
-  Z > 2.99 → 安全   1.81 < Z < 2.99 → 灰色   Z < 1.81 → 危险
+Z-Score risk signals:
+  Z > 2.99 -> safe   1.81 < Z < 2.99 -> grey   Z < 1.81 -> distress
 
-违约距离 DD → EDF：
+Distance to default DD -> EDF:
   DD > 4: EDF < 0.1%
   DD 2-4: EDF 0.1%-1%
   DD 1-2: EDF 1%-5%
   DD < 1: EDF > 5%
 ```
 
-### 中国固收数据源
+### US Fixed-Income Data Sources
 
-| 数据类型 | 推荐来源 |
+| Data Type | Recommended Source |
 |----------|----------|
-| 国债收益率曲线 | 中央结算公司（CCDC）、财政部官网 |
-| 信用债行情 | Wind、DM数据 |
-| 城投财务数据 | 发债主体年报、Wind |
-| 评级报告 | 中诚信、联合资信、东方金诚官网 |
-| 违约数据 | Wind、中国债券信息网（chinamoney.com.cn） |
-| ABS数据 | CNABS（中国资产证券化分析网） |
+| Treasury yield curve | US Treasury daily par curve, FRED (DGS series) |
+| Corporate bond prices | FINRA TRACE, Bloomberg, ICE BofA indices (via FRED) |
+| Municipal issuer financials | EMMA (MSRB), issuer ACFRs |
+| Rating reports | Moody's, S&P Global, Fitch websites |
+| Default data | Moody's / S&P annual default studies, Creditsights |
+| ABS / MBS data | SEC EDGAR (Reg AB filings), Fannie Mae / Freddie Mac loan-level data |
+
+---
+
+## China market notes
+
+Mechanics specific to the onshore China bond market that have no direct US equivalent.
+
+- **Ratings**: domestic ratings run high; a domestic AA is roughly an international BBB-, so the AA / AA+ / AAA lines matter more than the letter grade suggests and the outlook is essential. Rating agencies: China Chengxin, Lianhe, Golden Credit; default and issuance data on chinamoney.com.cn, Wind, DM; ABS data on CNABS. Altman Z parameters should be recalibrated for A-share issuers.
+- **Benchmark curve**: China government bonds (CGBs) plus policy-bank bonds (China Development Bank); key tenors 1Y / 3Y / 5Y / 7Y / 10Y / 30Y; the 10Y CGB is the core benchmark, published by China Central Depository (CCDC) and the Ministry of Finance.
+- **Market structure**: the interbank market (CFETS, regulated by the PBoC, ~90% of volume, OTC quotes, DVP T+0/T+1) trades CGBs, policy-bank bonds, NCDs, SCP / CP / MTN registered with NAFMII, and ABS / ABN; the exchange market (SSE / SZSE, regulated by the CSRC, ~10%) trades enterprise bonds (NDRC-approved), corporate bonds of listed companies, and convertibles. Local-government bonds are approved by the Ministry of Finance.
+- **LGFV (chengtou) bonds**: bonds of local-government financing vehicles, priced roughly as CGB + liquidity premium (30-50bp) + regional premium (0-200bp) + platform premium (0-100bp). Assess on four dimensions: regional fiscal strength (general public budget revenue, GDP, fiscal self-sufficiency, 40%), platform tier (province > city > county, 25%), platform position (sole platform, asset injections, diversification, 20%), and debt structure (interest-bearing debt, short-term share, refinancing pressure, 15%). Red lines: cash / short-term debt < 0.3 (< 0.5 is tight), non-standard financing / interest-bearing debt > 40%, EBITDA interest coverage < 1, overdue commercial paper on the dishonor list, county-level platforms in regions with debt ratios > 100%, and regional refinancing freezes. Since the 2023 debt-resolution package watch swap progress, platform-to-enterprise transformation, and regional name-list policy. Recoveries after technical defaults have been close to 100%.
+- **Wealth-management and asset-management products**: after the shift to NAV-based products, look through mixed products (equity and fixed-income sleeves), "fixed income plus" (80%+ bonds, up to 20% equity / convertibles), and FOF wrappers; amortized-cost accounting is no longer permitted for NAV products; classify holdings by rating / sector / LGFV vs non-LGFV; single-bond concentration > 5% is high.
+- **Default history**: liquidity defaults among mid-sized property developers; operational defaults at Yongcheng Coal and Brilliance Auto (2020); fraudulent defaults at Kangmei Pharmaceutical. Recovery references: LGFV near 100%, property developers about 20%-50% (land-bank quality), industrials about 30%-60%, non-bank financials about 40%-70% (depending on regulatory intervention).
+- **Hedging tools**: credit risk mitigation warrants (CRMW) and onshore CDS for credit risk; CFFEX treasury futures (TS / TF / T / TL) for duration; credit spreads are typically measured against CGBs or AAA LGFV bonds.

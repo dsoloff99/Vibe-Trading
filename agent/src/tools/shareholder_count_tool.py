@@ -1,6 +1,6 @@
 """Read-only tool: A-share quarterly shareholder count via Eastmoney datacenter.
 
-Eastmoney's datacenter report API publishes the periodic "股东户数" (number of
+Eastmoney's datacenter report API publishes the periodic "shareholder count" (number of
 registered shareholders) disclosure for mainland A-shares: the holder count per
 report period, the quarter-over-quarter change, and the average holding value
 per account. This tool wraps that report behind the project's BaseTool contract
@@ -41,7 +41,7 @@ class ShareholderCountTool(BaseTool):
 
     name = "get_shareholder_count"
     description = (
-        "Fetch mainland A-share quarterly shareholder count (股东户数) from the "
+        "Fetch mainland A-share quarterly shareholder count from the "
         "Eastmoney datacenter: holder count per report period, quarter-over-quarter "
         "change (absolute and percent), and average holding (shares and market value) "
         "per account. Markets: China A-shares only (.SH / .SZ / .BJ). "

@@ -1,8 +1,8 @@
 """Northbound (Stock-Connect) net-flow tool backed by Eastmoney push2his.
 
 Northbound flow is the net capital moving from Hong Kong into mainland China
-A-shares through the Shanghai/Shenzhen Stock-Connect channels ("沪股通" and
-"深股通"). Eastmoney publishes this as a free, no-auth time series through its
+A-shares through the Shanghai/Shenzhen Stock-Connect channels (Shanghai-Connect and
+Shenzhen-Connect). Eastmoney publishes this as a free, no-auth time series through its
 ``push2his`` ``kamt`` (kapital-amount) endpoints. Every request routes through
 the shared throttled Eastmoney client so we honor Eastmoney's per-IP rate limit
 and never burst the host into a temporary ban.
@@ -178,9 +178,9 @@ class NorthboundFlowTool(BaseTool):
 
     name = "get_northbound_flow"
     description = (
-        "MARKET-WIDE Northbound (Stock-Connect / 北向) net capital flow for the "
+        "MARKET-WIDE Northbound (Stock-Connect) net capital flow for the "
         "whole mainland China A-share market: the aggregate net inflow from Hong "
-        "Kong, split into Shanghai-Connect (沪股通) and Shenzhen-Connect (深股通) "
+        "Kong, split into Shanghai-Connect and Shenzhen-Connect "
         "channels (units: 10k CNY), as the latest realtime figure plus a recent "
         "daily history. This is a market-level total, NOT per-stock flow (for a "
         "given symbol's order-bucket inflow use get_fund_flow). Read-only; China "

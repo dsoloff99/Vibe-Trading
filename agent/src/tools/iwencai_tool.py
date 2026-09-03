@@ -1,4 +1,4 @@
-"""iWenCai (问财) natural-language A-share research search tool.
+"""iWenCai natural-language A-share research search tool.
 
 iWenCai is a Chinese-market natural-language stock screener: a research caller
 phrases a question in plain language ("low-PE banks with rising net profit") and
@@ -145,7 +145,7 @@ def _project_row(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 class IWenCaiSearchTool(BaseTool):
-    """Run an iWenCai (问财) natural-language A-share research query."""
+    """Run an iWenCai natural-language A-share research query."""
 
     name = "iwencai_search"
 
@@ -161,12 +161,12 @@ class IWenCaiSearchTool(BaseTool):
         return bool(get_env_config().data.vibe_trading_iwencai_key)
 
     description = (
-        "Run a natural-language A-share research query against iWenCai (问财), a "
+        "Run a natural-language A-share research query against iWenCai, a "
         "Chinese-market semantic stock screener. Phrase the question in plain "
         "language (Chinese works best) and get back the matching China A-share "
         "(SH/SZ) securities with the metric columns iWenCai parsed from the "
         "question. Read-only; requires the VIBE_TRADING_IWENCAI_KEY access key. "
-        'Example: {"query": "市盈率低于15的银行股", "limit": 10}.'
+        'Example: {"query": "banks with PE below 15", "limit": 10}.'
     )
     parameters = {
         "type": "object",
@@ -175,7 +175,7 @@ class IWenCaiSearchTool(BaseTool):
                 "type": "string",
                 "description": (
                     "Natural-language research question, e.g. "
-                    "'市盈率低于15且净利润增长的银行股' or 'low-PE banks with "
+                    "'banks with PE below 15 and growing net profit' or 'low-PE banks with "
                     "rising net profit'. Chinese phrasing yields the best parse."
                 ),
             },

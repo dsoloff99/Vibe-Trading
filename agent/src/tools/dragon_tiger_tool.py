@@ -1,6 +1,6 @@
-"""Dragon-Tiger (龙虎榜) board tool backed by the Eastmoney datacenter API.
+"""Dragon-Tiger board tool backed by the Eastmoney datacenter API.
 
-The Shanghai/Shenzhen exchanges publish a daily "dragon-tiger" (龙虎榜) board
+The Shanghai/Shenzhen exchanges publish a daily "dragon-tiger" board
 listing every A-share that triggered an abnormal-trading disclosure, together
 with the brokerage seats that drove the largest buys and sells. Eastmoney
 re-serves this disclosure through its free, no-auth ``datacenter-web`` JSON
@@ -152,11 +152,11 @@ def _seat_row(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 class DragonTigerTool(BaseTool):
-    """Query the Eastmoney A-share dragon-tiger (龙虎榜) disclosure board."""
+    """Query the Eastmoney A-share dragon-tiger disclosure board."""
 
     name = "get_dragon_tiger"
     description = (
-        "Fetch the A-share dragon-tiger board (龙虎榜) for a given trade date from "
+        "Fetch the A-share dragon-tiger board for a given trade date from "
         "Eastmoney's free datacenter API. Markets: China A-share (SH/SZ). Omit "
         "'code' for the full-market list of every security that appeared on the "
         "board that day; supply 'code' to also get that security's ranked top "

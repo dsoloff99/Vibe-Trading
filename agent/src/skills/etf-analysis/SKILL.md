@@ -1,184 +1,186 @@
 ---
 name: etf-analysis
-description: "ETF分析：产品筛选、费率对比、跟踪误差、流动性评估、策略应用与中国市场ETF量化配置框架。"
+description: "ETF analysis: product screening, expense-ratio comparison, tracking error, liquidity assessment, strategy applications (core-satellite, sector rotation, smart beta, arbitrage) and a data-driven framework for building ETF portfolios; use when a user wants to compare, select, monitor, or build strategies around ETFs such as SPY, QQQ, or VTI."
 category: asset-class
 ---
 
-# ETF 分析 Skill
+# ETF Analysis Skill
 
-## 定位
+## Purpose
 
-ETF（交易所交易基金）是被动投资与资产配置的核心工具。本 skill 覆盖 ETF 产品分析、选择方法论、策略应用、中国市场特色以及数据驱动的量化分析方法，为构建基于 ETF 的量化策略与组合提供完整框架。
+ETFs (exchange-traded funds) are the core tool for passive investing and asset allocation. This skill covers ETF product analysis, selection methodology, strategy applications, US market specifics, and data-driven quantitative methods, providing a complete framework for building ETF-based quantitative strategies and portfolios.
 
 ---
 
-## 1. ETF 产品分类
+## 1. ETF Product Classification
 
-### 1.1 按标的资产分类
+### 1.1 By Underlying Asset
 
-| 类型 | 代表产品 | 特点 |
+| Type | Representative Products | Characteristics |
 |------|---------|------|
-| **宽基 ETF** | 沪深300ETF (510300)、中证500ETF (510500)、创业板ETF (159915)、科创50ETF (588000) | 流动性最好，交易成本最低，适合核心仓位 |
-| **行业 ETF** | 消费ETF (159928)、医疗ETF (512170)、半导体ETF (512480)、银行ETF (512800) | 行业轮动工具，持仓集中度高 |
-| **主题 ETF** | 新能源ETF (516160)、碳中和ETF、元宇宙ETF | 主题炒作属性强，生命周期短 |
-| **策略ETF / Smart Beta** | 红利ETF (510880)、低波ETF、质量ETF、动量ETF | 因子暴露明确，费率通常略高于宽基 |
-| **商品 ETF** | 黄金ETF (518880)、豆粕ETF (159985)、原油ETF (162411) | 实物/期货支撑，注意展期损耗 |
-| **债券 ETF** | 国债ETF (511010)、信用债ETF、可转债ETF (511380) | 利率敏感，久期管理关键 |
-| **跨境 ETF (QDII)** | 纳指ETF (159632)、标普500ETF (513500)、日经225ETF (513880) | 汇率风险+溢价风险双重叠加 |
-| **货币 ETF** | 华宝添益 (511990)、银华日利 (511880) | T+0 申赎，流动性管理工具 |
+| **Broad-market ETFs** | SPY / IVV / VOO (S&P 500), VTI (total US market), QQQ (Nasdaq-100), IWM (Russell 2000) | Best liquidity, lowest trading cost, suited to core positions |
+| **Sector ETFs** | XLY (consumer discretionary), XLV (health care), SMH / SOXX (semiconductors), XLF (financials) | Sector-rotation tools, concentrated holdings |
+| **Thematic ETFs** | ICLN (clean energy), ARKK (disruptive innovation), BOTZ (robotics / AI) | Strong narrative and hype component, short life cycles |
+| **Strategy / Smart Beta ETFs** | SCHD / VYM (dividend), USMV / SPLV (low volatility), QUAL (quality), MTUM (momentum) | Explicit factor exposure; fees usually slightly above broad-market ETFs |
+| **Commodity ETFs** | GLD / IAU (gold), USO (crude oil), DBA (agriculture) | Physical or futures-backed; watch roll costs on futures-based products |
+| **Bond ETFs** | TLT / IEF / SHY (Treasuries), LQD (IG corporate), HYG (high yield), CWB (convertibles) | Rate sensitive; duration management is key |
+| **International ETFs** | EFA (developed ex-US), EEM / VWO (emerging), EWJ (Japan), MCHI / FXI (China) | FX risk plus stale-NAV / time-zone premium effects |
+| **Cash-equivalent ETFs** | BIL / SGOV (T-bills), SHV | Liquidity-management tools, not investment tools |
 
-### 1.2 结构类型
+### 1.2 Structure Types
 
-- **普通 ETF**：场内交易，实物申赎（一篮子股票换购），折溢价有套利机制自动收敛
-- **LOF（上市开放式基金）**：场内外均可交易，折溢价套利路径相同但效率略低
-- **ETF 联接基金**：场外渠道购买的 ETF 替代品，T+1 申赎，无折溢价，适合定投
-- **杠杆/反向 ETF**：日内恒定杠杆，长期持有有衰减效应（见第 3.4 节）
+- **Standard ETFs**: exchange-traded, in-kind creation/redemption through authorized participants (APs); premium/discount converges automatically through arbitrage
+- **ETNs (exchange-traded notes)**: unsecured bank notes that track an index; no tracking error but issuer credit risk and possible early termination
+- **Index mutual funds**: the off-exchange substitute for an ETF; bought at end-of-day NAV, no premium/discount, suited to automatic periodic investing (e.g. inside a 401(k))
+- **Leveraged / inverse ETFs**: constant daily leverage, with a decay effect over long holding periods (see Section 4.4)
 
 ---
 
-## 2. ETF 核心指标
+## 2. Core ETF Metrics
 
-### 2.1 跟踪误差（Tracking Error）
+### 2.1 Tracking Error
 
-衡量 ETF 复制指数能力的最核心指标。
-
-```
-日跟踪误差 = std(ETF日收益率 - 指数日收益率)
-年化跟踪误差 = 日跟踪误差 × √252
-```
-
-**评级标准（A股宽基ETF）**：
-- 优秀：年化跟踪误差 < 0.2%
-- 合格：0.2% ~ 0.5%
-- 较差：> 0.5%
-
-**跟踪误差来源**：
-1. 管理费和托管费（持续拖累，每日计提）
-2. 分红处理时机（分红再投资延迟）
-3. 成分股纳入/剔除时的买卖冲击
-4. 现金仓位（申赎带来的暂时性现金拖累）
-5. 停牌股处理（用替代品或现金替代）
-6. 指数编制方法（全复制 vs 抽样复制）
-
-### 2.2 信息比率（Information Ratio）
+The single most important measure of how well an ETF replicates its index.
 
 ```
-IR = (ETF年化收益率 - 指数年化收益率) / 年化跟踪误差
+Daily tracking error = std(ETF daily return - index daily return)
+Annualized tracking error = daily tracking error x sqrt(252)
 ```
 
-对 ETF 来说 IR 通常为负（因费率拖累），IR 越接近 0 越好。
+**Rating scale (broad-market ETFs)**:
+- Excellent: annualized tracking error < 0.2% (large-cap US broad ETFs such as SPY / VOO typically run well under 0.1%)
+- Acceptable: 0.2% ~ 0.5%
+- Poor: > 0.5%
 
-### 2.3 折溢价率
+**Sources of tracking error**:
+1. Management and administrative fees (continuous drag, accrued daily)
+2. Dividend handling timing (delay in reinvesting distributions)
+3. Trading impact when index constituents are added or removed
+4. Cash drag (temporary cash from creations/redemptions)
+5. Handling of halted or hard-to-trade holdings (substitutes or cash in lieu)
+6. Replication method (full replication vs sampling); securities-lending income partly offsets fees
+
+### 2.2 Information Ratio
 
 ```
-折溢价率 = (ETF市价 - ETF净值IOPV) / ETF净值IOPV × 100%
+IR = (ETF annualized return - index annualized return) / annualized tracking error
 ```
 
-- **正溢价**：市价 > 净值，套利者卖出 ETF / 申购一篮子股票换购，溢价收敛
-- **负折价**：市价 < 净值，套利者买入 ETF / 赎回一篮子股票，折价收敛
-- **异常溢价场景**：跨境 QDII ETF（额度限制导致持续溢价）、停牌股比例高的行业 ETF
+For an ETF the IR is usually negative (fee drag); the closer to 0 the better.
 
-### 2.4 流动性指标
+### 2.3 Premium / Discount
 
-| 指标 | 含义 | 参考阈值 |
+```
+Premium/discount = (ETF market price - ETF iNAV) / ETF iNAV x 100%
+```
+
+- **Premium**: price > NAV; APs sell the ETF and create new shares with the basket, and the premium converges
+- **Discount**: price < NAV; APs buy the ETF and redeem it for the basket, and the discount converges
+- **Abnormal premium scenarios**: international ETFs whose underlying market is closed (stale NAV), ETFs holding illiquid assets (high yield, bank loans, frontier markets), and ETFs whose creations have been suspended (e.g. USO in 2020, some single-country EM ETFs)
+
+### 2.4 Liquidity Metrics
+
+| Metric | Meaning | Reference Threshold |
 |------|------|--------|
-| 日均成交额 | 买卖方便程度 | 宽基 > 1亿，行业 > 2000万 |
-| 买卖价差（Spread） | 即时交易成本 | < 0.05% 为优质 |
-| 盘口深度 | 单笔大额交易冲击 | 买卖各5档累计 > 500万为佳 |
-| 换手率 | 活跃程度 | 过低则流动性风险高 |
+| Average daily dollar volume | Ease of trading | Broad-market > $50M, sector > $5M |
+| Bid-ask spread | Immediate trading cost | < 0.05% is high quality |
+| Order-book depth | Impact of a single large order | Top 5 levels on each side > $5M cumulative is good |
+| Turnover | Activity level | Too low implies elevated liquidity risk |
 
-### 2.5 费率体系
+Remember that the true liquidity of an ETF is the liquidity of its underlying basket (APs can create shares), so on-screen volume understates capacity for broad-market products.
+
+### 2.5 Fee Structure
 
 ```
-综合费率 = 管理费 + 托管费 + 指数使用费
-（不含交易佣金、印花税、申赎费）
+Total expense ratio = management fee + administrative/custody fees + index licensing fee
+(excludes brokerage commissions, bid-ask spread, and creation/redemption fees)
 ```
 
-**长期费率影响公式**：
+**Long-term fee impact formula**:
 ```
-N年费率复利损耗 = (1 - 年费率)^N
-例：年费率0.5% vs 0.15%，10年差距 ≈ 3.5%，20年差距 ≈ 6.8%
+N-year compounded fee drag = (1 - annual fee)^N
+Example: 0.5% vs 0.15% annual fee, gap after 10 years ~ 3.5%, after 20 years ~ 6.8%
 ```
 
-主流宽基 ETF 费率对比（2025年）：
-- 华夏/易方达/南方 沪深300ETF：0.15%（管理）+ 0.05%（托管）= 0.20%
-- 部分小规模宽基：0.5%+，长期持有劣势明显
+Expense ratios of major broad-market ETFs (2025):
+- VOO / IVV / VTI: 0.03%; SPLG: 0.02%; SPY: 0.0945%; QQQ: 0.20% (QQQM: 0.15%)
+- Some small or niche products: 0.5%+, a clear disadvantage for long-term holders
 
-### 2.6 规模与流动性评估
+### 2.6 AUM and Liquidity Assessment
 
-- **规模门槛**：
-  - < 2亿：清盘风险较高，流动性差
-  - 2~10亿：可正常交易，大额资金受限
-  - > 10亿：流动性充足，做市商活跃
-  - > 100亿：旗舰 ETF，机构首选
+- **AUM thresholds**:
+  - < $50M: elevated closure risk, poor liquidity
+  - $50M ~ $500M: tradable, but large orders are constrained
+  - > $500M: ample liquidity, active market makers
+  - > $10B: flagship ETF, institutional first choice
 
-- **清盘风险信号**：规模持续下滑、连续90天日均规模 < 5000万
+- **Closure risk signals**: steadily shrinking AUM, average AUM below ~$50M for 90 consecutive days, issuer consolidating its product line
 
 ---
 
-## 3. ETF 选择方法论
+## 3. ETF Selection Methodology
 
-### 3.1 同类 ETF 比较框架
+### 3.1 Comparison Framework for Same-Index ETFs
 
-同一指数往往有多只 ETF，选择步骤：
+The same index is often tracked by several ETFs (e.g. SPY / IVV / VOO / SPLG on the S&P 500). Selection steps:
 
 ```
-Step 1: 规模筛选 → 剔除 < 5亿的小规模产品
-Step 2: 费率比较 → 同等条件下选费率最低
-Step 3: 跟踪误差 → 近1年/近3年双维度比较
-Step 4: 流动性 → 日均成交额、买卖价差
-Step 5: 基金公司 → 指数化投资能力、历史口碑
+Step 1: AUM screen -> drop small products under $500M
+Step 2: Fee comparison -> lowest expense ratio, all else equal
+Step 3: Tracking error -> compare on both 1-year and 3-year windows
+Step 4: Liquidity -> average daily dollar volume, bid-ask spread
+Step 5: Issuer -> indexing capability, track record
 ```
 
-**量化评分模型**：
+**Quantitative scoring model**:
 
 ```python
 def etf_score(etf_data: dict) -> float:
     """
-    ETF 综合评分（越高越好，满分100）。
+    Composite ETF score (higher is better, max 100).
 
     Args:
-        etf_data: 包含 scale, fee, tracking_error, avg_volume, spread 的字典
+        etf_data: dict containing scale, fee, tracking_error, avg_volume, spread
 
     Returns:
-        综合评分 0~100
+        Composite score 0~100
     """
     score = 0.0
-    # 规模得分（30分）
+    # AUM score (30 points)
     scale = etf_data['scale_billion']
     score += min(30, scale / 10 * 30)
 
-    # 费率得分（25分）：费率越低越高分
-    fee = etf_data['total_fee_pct']  # 年费率百分比
+    # Fee score (25 points): lower fee, higher score
+    fee = etf_data['total_fee_pct']  # annual expense ratio in percent
     score += max(0, 25 - fee * 50)
 
-    # 跟踪误差得分（30分）：误差越小越高分
+    # Tracking-error score (30 points): smaller error, higher score
     te = etf_data['tracking_error_annual_pct']
     score += max(0, 30 - te * 60)
 
-    # 流动性得分（15分）
+    # Liquidity score (15 points)
     vol = etf_data['avg_daily_volume_million']
     score += min(15, vol / 10 * 15)
 
     return round(score, 2)
 ```
 
-### 3.2 费率影响长期收益的量化分析
+### 3.2 Quantifying the Long-Term Impact of Fees
 
 ```python
 import numpy as np
 
 def fee_drag_analysis(annual_return: float, years: int, fee_rates: list[float]) -> dict:
     """
-    分析不同费率对长期收益的拖累效果。
+    Analyze how different expense ratios drag on long-term returns.
 
     Args:
-        annual_return: 指数年化收益率（小数，如0.08）
-        years: 投资年限
-        fee_rates: 待比较的费率列表（小数，如[0.002, 0.005, 0.015]）
+        annual_return: index annualized return (decimal, e.g. 0.08)
+        years: investment horizon in years
+        fee_rates: list of expense ratios to compare (decimal, e.g. [0.002, 0.005, 0.015])
 
     Returns:
-        各费率下的终值倍数和相对拖累字典
+        dict of terminal-value multiples and relative drag for each fee rate
     """
     results = {}
     base_value = (1 + annual_return) ** years
@@ -192,103 +194,103 @@ def fee_drag_analysis(annual_return: float, years: int, fee_rates: list[float]) 
         }
     return results
 
-# 示例：8% 指数收益，20年期
+# Example: 8% index return, 20-year horizon
 # fee_drag_analysis(0.08, 20, [0.002, 0.005, 0.015])
 ```
 
-### 3.3 做市商质量评估
+### 3.3 Market-Maker Quality Assessment
 
-优质做市商体现在：
-- **价差稳定**：波动期价差扩大幅度小（< 3倍正常水平）
-- **深度充足**：盘口各档位金额均匀
-- **报价连续性**：不频繁撤单重报
-- **大单应对**：大额交易后价差快速恢复
+A high-quality market maker shows:
+- **Stable spreads**: spread widens only modestly in volatile periods (< 3x normal)
+- **Sufficient depth**: dollar size is distributed evenly across price levels
+- **Quote continuity**: no frequent cancel-and-replace behavior
+- **Large-order handling**: spread recovers quickly after a block trade
 
-评估方法：
+Assessment method:
 ```python
-# 通过Level2数据计算有效价差
-effective_spread = (ask_price - bid_price) / mid_price * 100  # 单位 %
+# Effective spread from Level 2 data
+effective_spread = (ask_price - bid_price) / mid_price * 100  # in %
 
-# 价格冲击成本（Impact Cost）
-# 买入N万元所需均价相对于中间价的偏离
+# Impact cost
+# Deviation of the average fill price for buying $N from the mid price
 impact_cost = (avg_buy_price - mid_price) / mid_price * 100
 ```
 
-### 3.4 基金公司实力评估
+### 3.4 Issuer Strength Assessment
 
-| 维度 | 评估要点 |
+| Dimension | Assessment Points |
 |------|---------|
-| ETF 管理规模 | 全市场排名，指数化投资专业度 |
-| 跟踪误差历史 | 长期维度（3年+）稳定性 |
-| 产品线完整性 | 宽基、行业、跨境覆盖广度 |
-| 申赎效率 | T+0 实物申赎处理能力 |
-| 做市商合作质量 | 与头部券商做市商的合作稳定性 |
+| ETF assets under management | Market-wide ranking, indexing expertise |
+| Tracking-error history | Stability over long windows (3+ years) |
+| Product-line completeness | Breadth across broad-market, sector, and international coverage |
+| Creation/redemption efficiency | Handling of in-kind baskets, custom baskets |
+| Market-maker relationships | Stable relationships with leading APs and market makers |
 
-国内 ETF 管理头部公司（规模口径）：华夏、易方达、华泰柏瑞、南方、嘉实、博时
+Largest US ETF issuers by AUM: Vanguard, BlackRock (iShares), State Street (SPDR), Invesco, Charles Schwab, JPMorgan
 
 ---
 
-## 4. ETF 策略应用
+## 4. ETF Strategy Applications
 
-### 4.1 核心-卫星策略（Core-Satellite）
+### 4.1 Core-Satellite Strategy
 
 ```
-总组合 = 核心仓位（70~80%）+ 卫星仓位（20~30%）
+Total portfolio = core (70~80%) + satellite (20~30%)
 
-核心仓位：宽基ETF（沪深300/中证500/全A）
-  → 获取市场beta，低费率，长期持有，减少交易摩擦
+Core: broad-market ETFs (VTI / VOO / SPY, plus VXUS for ex-US exposure)
+  -> capture market beta, low fees, long holding period, minimal trading friction
 
-卫星仓位：行业ETF/主题ETF/Smart Beta ETF
-  → 增强收益，主动暴露特定因子，允许更高换手
+Satellite: sector ETFs / thematic ETFs / smart beta ETFs
+  -> enhance returns, deliberate exposure to specific factors, higher turnover allowed
 ```
 
-**再平衡触发条件**：
-- 时间触发：每季度/每半年
-- 偏离触发：单一资产偏离目标权重 > 5%
+**Rebalancing triggers**:
+- Time-based: quarterly or semi-annually
+- Drift-based: any single asset deviates from target weight by > 5%
 
-### 4.2 行业轮动 ETF 策略
+### 4.2 Sector-Rotation ETF Strategies
 
-**动量轮动**：
+**Momentum rotation**:
 ```python
 def sector_momentum_rotation(etf_returns: pd.DataFrame, lookback: int = 20, top_n: int = 3) -> list[str]:
     """
-    基于动量的行业ETF轮动选择。
+    Momentum-based sector ETF rotation.
 
     Args:
-        etf_returns: 各行业ETF日收益率 DataFrame，列为ETF代码
-        lookback: 回看窗口（交易日数）
-        top_n: 持有ETF数量
+        etf_returns: DataFrame of daily returns for each sector ETF, columns are ETF tickers
+        lookback: lookback window (trading days)
+        top_n: number of ETFs to hold
 
     Returns:
-        本期持有的ETF代码列表
+        List of ETF tickers to hold this period
     """
     momentum = etf_returns.tail(lookback).sum()
     selected = momentum.nlargest(top_n).index.tolist()
     return selected
 ```
 
-**宏观周期轮动**：
-| 经济周期 | 推荐行业 ETF |
+**Macro-cycle rotation**:
+| Economic Phase | Recommended Sector ETFs |
 |---------|------------|
-| 复苏期（低增长→高增长，低通胀） | 消费、科技、中小盘 |
-| 过热期（高增长，高通胀） | 能源、材料、工业 |
-| 滞胀期（低增长，高通胀） | 能源、公用事业、消费 |
-| 衰退期（高增长→低增长） | 医疗、公用事业、债券ETF |
+| Recovery (low -> high growth, low inflation) | Consumer discretionary (XLY), technology (XLK), small caps (IWM) |
+| Overheating (high growth, high inflation) | Energy (XLE), materials (XLB), industrials (XLI) |
+| Stagflation (low growth, high inflation) | Energy (XLE), utilities (XLU), consumer staples (XLP) |
+| Recession (high -> low growth) | Health care (XLV), utilities (XLU), bond ETFs (TLT / AGG) |
 
-### 4.3 Smart Beta ETF 因子暴露分析
+### 4.3 Smart Beta ETF Factor Exposure Analysis
 
-主要因子及对应ETF：
+Major factors and corresponding ETFs:
 
-| 因子 | 代表ETF | 历史有效性（A股） |
+| Factor | Representative ETFs | Historical Effectiveness (US) |
 |------|--------|--------------|
-| 价值（低估值） | 沪深300价值ETF | 中等，受风格切换影响 |
-| 红利（高股息） | 红利ETF (510880) | 较强，尤其熊市防御 |
-| 低波动 | 中证低波ETF | 较强，夏普比优于宽基 |
-| 质量（高ROE） | 中证质量ETF | 较强，长期复合效果好 |
-| 动量 | 目前A股产品少 | 中短期有效，长期均值回归 |
-| 小盘 | 中证1000ETF (512100) | 强，但流动性风险高 |
+| Value (low valuation) | VTV / IWD / VLUE | Long-run premium, but long stretches of underperformance (2010s) |
+| Dividend (high yield) | SCHD / VYM / DVY | Moderate; defensive in bear markets |
+| Low volatility | USMV / SPLV | Strong; better Sharpe ratio than the broad market |
+| Quality (high ROE) | QUAL | Strong; compounds well over the long term |
+| Momentum | MTUM | Effective short-to-medium term, crash risk at reversals |
+| Small cap | IWM / VB / AVUV | Positive premium historically, higher liquidity risk |
 
-**因子暴露分析代码**：
+**Factor exposure analysis code**:
 ```python
 import pandas as pd
 import numpy as np
@@ -296,14 +298,14 @@ from scipy import stats
 
 def factor_exposure_analysis(etf_returns: pd.Series, factor_returns: dict[str, pd.Series]) -> pd.DataFrame:
     """
-    分析ETF对各因子的暴露程度（单因子回归）。
+    Analyze an ETF's exposure to each factor (single-factor regressions).
 
     Args:
-        etf_returns: ETF日收益率序列
-        factor_returns: 各因子收益率字典 {因子名: 收益率序列}
+        etf_returns: ETF daily return series
+        factor_returns: dict of factor return series {factor name: return series}
 
     Returns:
-        包含 beta, t_stat, r_squared 的 DataFrame
+        DataFrame with beta, t_stat, r_squared
     """
     results = []
     for factor_name, factor_ret in factor_returns.items():
@@ -321,208 +323,239 @@ def factor_exposure_analysis(etf_returns: pd.Series, factor_returns: dict[str, p
     return pd.DataFrame(results).set_index('factor')
 ```
 
-### 4.4 杠杆/反向 ETF 的衰减效应
+### 4.4 Decay in Leveraged / Inverse ETFs
 
-**Beta 衰减（Volatility Decay）原理**：
-
-```
-每日恒定杠杆 N 倍 → 复合效应导致长期收益 ≠ N × 指数收益
-
-衰减量（近似）= N²(N-1)/2 × σ² × T
-其中 σ 为指数日波动率，T 为持有天数
-```
-
-**数值示例**：
-- 指数年化波动率 20%，日波动率 ≈ 1.26%
-- 2倍杠杆ETF，持有1年：衰减损耗 ≈ 2² × (2-1)/2 × (0.2)² × 1 ≈ 4%
-
-**适用场景**：
-- 杠杆ETF：强趋势行情中的短期工具（持有 < 1个月）
-- 反向ETF：市场对冲、短期下跌押注（不适合长期持有）
-- **严禁**：用杠杆/反向ETF做长期配置仓位
-
-### 4.5 ETF 套利策略
-
-**折溢价套利**（需要有实物申赎资格，通常门槛100万份）：
+**Volatility decay mechanism**:
 
 ```
-溢价套利：
-  ETF市价 > IOPV + 交易成本
-  → 买入一篮子成分股 → 申购ETF份额 → 卖出ETF
-  → 套利利润 ≈ 溢价率 - 冲击成本 - 佣金
+Constant daily leverage of N x -> compounding means long-run return != N x index return
 
-折价套利：
-  ETF市价 < IOPV - 交易成本
-  → 买入ETF份额 → 赎回一篮子成分股 → 卖出成分股
-  → 套利利润 ≈ 折价率 - 冲击成本 - 佣金
+Decay (approximate) = N^2(N-1)/2 x sigma^2 x T
+where sigma is the index daily volatility and T is the holding period in days
 ```
 
-**跨市场套利（ETF vs 期货）**：
+**Numerical example**:
+- Index annualized volatility 20%, daily volatility ~ 1.26%
+- 2x leveraged ETF held for 1 year: decay ~ 2^2 x (2-1)/2 x (0.2)^2 x 1 ~ 4%
+
+**Appropriate uses**:
+- Leveraged ETFs (TQQQ, UPRO): short-term tools in strongly trending markets (hold < 1 month)
+- Inverse ETFs (SQQQ, SH): market hedges, short-term bearish bets (not for long-term holding)
+- **Never**: use leveraged / inverse ETFs as long-term allocation positions
+
+### 4.5 ETF Arbitrage Strategies
+
+**Premium/discount arbitrage** (requires AP status; creation units are typically 25,000-50,000 shares):
+
 ```
-IF（沪深300股指期货）基差 = 期货价格 - 沪深300指数
-当基差 > 合理基差（无风险利率×剩余期限）时：
-  → 卖期货 + 买ETF（正向套利）
-当基差 < 合理基差时：
-  → 买期货 + 卖ETF（反向套利，需融券）
+Premium arbitrage:
+  ETF price > iNAV + transaction costs
+  -> buy the constituent basket -> create ETF shares -> sell the ETF
+  -> arbitrage profit ~ premium - impact cost - commissions
+
+Discount arbitrage:
+  ETF price < iNAV - transaction costs
+  -> buy ETF shares -> redeem for the constituent basket -> sell the constituents
+  -> arbitrage profit ~ discount - impact cost - commissions
 ```
 
-**统计套利（配对交易）**：
+**Cross-market arbitrage (ETF vs futures)**:
+```
+ES (S&P 500 e-mini futures) basis = futures price - S&P 500 index
+When basis > fair basis (index x (risk-free rate - dividend yield) x time to expiry):
+  -> sell futures + buy ETF (cash-and-carry)
+When basis < fair basis:
+  -> buy futures + sell ETF (reverse cash-and-carry, requires stock borrow)
+```
+
+**Statistical arbitrage (pairs trading)**:
 ```python
-# 同类ETF（如不同公司发行的沪深300ETF）之间的价差均值回归
-# 价差 = 价格差 或 价格比
-# 当价差偏离历史均值2个标准差时建仓，回归时平仓
+# Mean reversion of the spread between same-index ETFs (e.g. SPY vs IVV vs VOO)
+# Spread = price difference or price ratio
+# Open when the spread deviates 2 standard deviations from its history, close on reversion
 spread = etf_a_price / etf_b_price
 z_score = (spread - spread.rolling(60).mean()) / spread.rolling(60).std()
 signal = pd.Series(0, index=z_score.index)
-signal[z_score > 2] = -1   # ETF_A 相对贵，卖A买B
-signal[z_score < -2] = 1   # ETF_A 相对便宜，买A卖B
+signal[z_score > 2] = -1   # ETF_A relatively rich: sell A, buy B
+signal[z_score < -2] = 1   # ETF_A relatively cheap: buy A, sell B
 ```
 
 ---
 
-## 5. 中国 ETF 市场特色
+## 5. US ETF Market Specifics
 
-### 5.1 场内 ETF vs 场外联接基金
+### 5.1 ETFs vs Index Mutual Funds
 
-| 维度 | 场内 ETF | 场外联接基金 |
+| Dimension | ETF | Index Mutual Fund |
 |------|---------|-----------|
-| 购买渠道 | 证券账户，实时交易 | 银行/基金直销，T+1申赎 |
-| 申赎方式 | 实物申赎（机构）或二级市场（个人） | 现金申赎 |
-| 折溢价 | 存在（有套利机制） | 不存在 |
-| 最小交易单位 | 100份（约10~100元） | 1元起投 |
-| 费率 | 较低（管理费+交易佣金） | 略高（申购费+管理费） |
-| 适合场景 | 波段操作、大额配置 | 定投、小额长期持有 |
+| Purchase channel | Brokerage account, intraday trading | Fund company or brokerage, end-of-day NAV |
+| Creation/redemption | In-kind (APs) or secondary market (individuals) | Cash purchases and redemptions |
+| Premium/discount | Exists (with an arbitrage mechanism) | None |
+| Minimum trade size | 1 share (fractional shares at many brokers) | Often $1 ~ $3,000 minimum |
+| Costs | Low (expense ratio + spread; usually commission-free) | Low to moderate (expense ratio; possible transaction fees) |
+| Tax efficiency | High (in-kind redemptions avoid capital-gains distributions) | Lower (redemptions can force taxable distributions) |
+| Best suited to | Tactical trades, large allocations, taxable accounts | Automatic periodic investing, 401(k) / IRA plans |
 
-### 5.2 跨境 ETF（QDII）特殊考量
+### 5.2 Special Considerations for International ETFs
 
-**溢价形成原因**：
-- QDII 额度限制：基金公司 QDII 额度用完后暂停申购，套利机制失效
-- 汇率影响：人民币贬值时，持有境外资产的 ETF 净值上升，引发追涨
-- 时差影响：A 股收盘时海外市场尚未开盘，IOPV 参考价滞后
+**Sources of premium/discount**:
+- Time-zone mismatch: the underlying market is closed during US hours, so the published NAV is stale and the ETF price is the market's live price discovery
+- FX effects: a weaker dollar raises the NAV of unhedged foreign holdings and can attract momentum buying
+- Access limits: single-country ETFs in restricted markets (e.g. India, China A-shares) can hit foreign-ownership quotas and suspend creations, breaking the arbitrage mechanism
 
-**溢价率警戒线**：
-- < 2%：正常范围，可正常配置
-- 2%~5%：溢价明显，入场需谨慎，等待回落
-- > 5%：高溢价，存在显著买入风险（净值回落但溢价收窄双杀）
+**Premium warning thresholds**:
+- < 2%: normal range, safe to allocate
+- 2%~5%: clear premium, enter cautiously and wait for it to narrow
+- > 5%: high premium, significant entry risk (NAV falling while the premium collapses is a double hit)
 
-**汇率对冲**：
-- 部分 QDII ETF 提供对冲版本（如标普500对冲ETF）
-- 对冲成本 ≈ 中美利差（2025年约1.5~2.5%/年），显著降低收益
+**Currency hedging**:
+- Many international ETFs offer hedged versions (e.g. HEFA vs EFA, DXJ vs EWJ)
+- Hedging cost ~ interest-rate differential between the US and the target market; with US rates above most developed markets in 2025, hedging foreign developed exposure has been a small positive carry, while hedging EM exposure is expensive
 
-### 5.3 LOF 与分级基金历史经验
+### 5.3 Lessons from ETNs and Closed-End Funds
 
-**LOF（上市开放式基金）**：
-- 场内外均可交易，折价套利路径：场内折价买入 → 转托管 → 场外赎回
-- 转托管时间 T+2~T+3，存在净值变动风险
+**ETNs (exchange-traded notes)**:
+- Unsecured debt of the issuing bank; investors carry issuer credit risk (Lehman Brothers ETNs became worthless in 2008)
+- Issuers can halt creations, causing large premiums (TVIX in 2012), or terminate the note early
 
-**分级基金（已全面转型，2020年前历史参考）**：
-- A 份额：约定收益型，类似债券
-- B 份额：杠杆型，与A约定收益挂钩
-- 重要教训：下折机制导致B份额大幅亏损；高溢价套利被轧空
-- 现状：监管要求全部转型为普通ETF，不再有新发
+**Inverse-volatility and leveraged products (historical lessons)**:
+- XIV (inverse VIX ETN) lost more than 90% in one session in February 2018 and was terminated
+- Key lesson: constant-leverage products on volatile underlyings can be wiped out by a single tail event; termination clauses crystallize the loss
+- Closed-end funds trade at persistent discounts because they lack a creation/redemption mechanism; do not confuse them with ETFs
 
-### 5.4 中国主要 ETF 指数体系
+### 5.4 Major US Index Families
 
-**宽基指数**：
+**Broad-market indices**:
 
-| 指数 | 成分股 | 特点 |
+| Index | Constituents | Characteristics |
 |------|-------|------|
-| 沪深300 | 沪深两市市值最大300只 | 大盘蓝筹，衍生品丰富（IF期货/300期权） |
-| 中证500 | 300~800名中盘股 | 中盘成长，与300互补 |
-| 中证1000 | 800~1800名小盘股 | 小盘因子，波动较大 |
-| 上证50 | 沪市最大50只 | 超大盘，金融地产权重高 |
-| 创业板指 | 创业板前100名 | 科技成长，波动大 |
-| 科创50 | 科创板前50名 | 硬科技，上市时间短 |
-| 北证50 | 北交所前50名 | 新兴市场，流动性弱 |
-| 中证全指 / 万得全A | 全市场 | 最宽泛的基准 |
+| S&P 500 | 500 largest US large caps (committee-selected) | Large-cap benchmark, deepest derivatives market (ES futures / SPX options) |
+| S&P MidCap 400 | 400 mid caps | Mid-cap growth, complements the 500 |
+| S&P SmallCap 600 | 600 small caps with a profitability screen | Small-cap factor, higher quality than Russell 2000 |
+| Russell 1000 / 2000 | Largest 1,000 / next 2,000 US stocks | Rules-based; Russell 2000 is the standard small-cap benchmark |
+| Nasdaq-100 | 100 largest non-financial Nasdaq stocks | Technology and growth heavy, high volatility |
+| Dow Jones Industrial Average | 30 blue chips, price-weighted | Legacy benchmark, narrow |
+| CRSP US Total Market / Russell 3000 | Entire investable US market | Broadest benchmarks (VTI / IWV) |
+| MSCI USA / MSCI ACWI | US large-mid caps / global all-cap | Global allocation building blocks |
 
-**指数调整规律**：
-- 沪深300/中证500：每年6月和12月调整一次
-- 调整前后：纳入股票涨、剔除股票跌（短期），提供事件驱动机会
-
----
-
-## 6. ETF 组合构建
-
-### 6.1 基于 ETF 的资产配置实现
-
-**经典配置框架（可用ETF实现）**：
-
-```
-股债 60/40 中国版：
-  沪深300ETF 30% + 中证500ETF 20% + 中债ETF 40% + 黄金ETF 10%
-
-全天候组合（中国版）：
-  股票ETF（沪深300）25%
-  长期国债ETF        40%
-  中期国债ETF        15%
-  黄金ETF            7.5%
-  商品ETF            12.5%
-
-哑铃策略：
-  宽基ETF（低风险核心）50%
-  行业/主题ETF（高弹性进攻）50%
-```
-
-### 6.2 全球化配置的 ETF 工具选择
-
-```
-A股：沪深300ETF 510300 / 中证500ETF 510500
-美股：纳指ETF 159632 / 标普500ETF 513500
-港股：恒生ETF 159920 / 恒生科技ETF 513130
-欧洲：德国DAX ETF / 欧洲50ETF（规模较小）
-日本：日经225ETF 513880 / 东证ETF
-新兴：越南ETF / 印度ETF（部分有QDII溢价）
-
-固定收益：
-  国内：国债ETF 511010 / 政金债ETF
-  美国：美债ETF（QDII）
-
-商品：
-  黄金ETF 518880
-  原油ETF 162411
-  CRB商品指数ETF（国内较少）
-```
-
-### 6.3 再平衡频率与交易成本权衡
-
-**再平衡成本**：
-```
-单次再平衡成本 ≈ 交易金额 × (佣金率 + 价差/2 + 冲击成本)
-≈ 交易金额 × 0.05%~0.15%（宽基ETF）
-
-年化再平衡成本 = 单次成本 × 年均调仓次数
-```
-
-**最优再平衡频率建议**：
-- 纯被动配置（波动低）：每年2次（6月/12月）
-- 行业轮动（波动高）：每月或每季度
-- 阈值触发法：偏离目标权重 > 5% 时触发，通常优于固定频率
-
-**免佣金再平衡技巧**：
-- 利用新增资金定向补仓偏低仓位，减少卖出操作
-- 分红收益优先配置到低配资产
-
-### 6.4 税务效率考量
-
-中国 ETF 税务规则：
-- **个人投资者**：
-  - 股票型ETF资本利得免税（持有期间）
-  - ETF分红：现金分红免税，红利再投资不计税
-  - 货币ETF利息收入：暂免个人所得税
-- **机构投资者**：
-  - 资本利得需计入企业所得税（25%）
-  - 持股期间分红：持股 > 12个月免税
-
-**税务效率策略**：
-- 高换手的行业轮动策略尽量放在个人账户（利用资本利得免税）
-- 定期定额长期持有，减少短期资本利得实现频率
+**Index rebalancing patterns**:
+- S&P indices: quarterly rebalance on the third Friday of March / June / September / December; ad hoc additions on corporate events
+- Russell: annual reconstitution on the fourth Friday of June (the largest single-day trading event in US equities)
+- Nasdaq-100: annual reconstitution in December, plus special rebalances when concentration limits are breached
+- Around each event: added stocks rise and deleted stocks fall in the short term, providing event-driven opportunities
 
 ---
 
-## 7. 数据分析方法
+## 6. ETF Portfolio Construction
 
-### 7.1 用 Tushare 获取 ETF 数据
+### 6.1 Implementing Asset Allocation with ETFs
+
+**Classic allocation frameworks (implementable with ETFs)**:
+
+```
+60/40 stocks-bonds, US version:
+  SPY 30% + IWM 20% + AGG 40% + GLD 10%
+  (or VTI 40% + VXUS 20% + BND 40%)
+
+All Weather portfolio (US version):
+  Equity ETF (SPY / VTI)     30%
+  Long-term Treasury ETF (TLT) 40%
+  Intermediate Treasury ETF (IEF) 15%
+  Gold ETF (GLD)              7.5%
+  Commodity ETF (DBC / PDBC)  7.5%
+
+Barbell strategy:
+  Broad-market ETF (low-risk core)          50%
+  Sector / thematic ETFs (high-beta offense) 50%
+```
+
+### 6.2 ETF Tools for Global Allocation
+
+```
+US equities:      SPY / VOO / VTI / QQQ / IWM
+Developed ex-US:  VEA / EFA / IEFA
+Europe:           VGK / EZU / EWG (Germany)
+Japan:            EWJ / DXJ (hedged)
+Emerging markets: VWO / EEM / IEMG
+China:            MCHI / FXI / KWEB;  India: INDA;  Vietnam: VNM
+
+Fixed income:
+  US Treasuries:   SHY / IEF / TLT / GOVT
+  Aggregate bonds: AGG / BND
+  Corporate:       LQD (IG) / HYG (HY);  TIPS: TIP;  International: BNDX
+
+Commodities:
+  Gold: GLD / IAU
+  Crude oil: USO / BNO
+  Broad commodity index: DBC / PDBC / GSG
+```
+
+### 6.3 Rebalancing Frequency vs Trading Cost
+
+**Rebalancing cost**:
+```
+Cost per rebalance ~ traded amount x (commission rate + spread/2 + impact cost)
+~ traded amount x 0.01%~0.05% (broad-market ETFs, commission-free at most US brokers)
+
+Annual rebalancing cost = cost per rebalance x average number of rebalances per year
+```
+
+**Recommended rebalancing frequency**:
+- Pure passive allocation (low volatility): twice a year (June / December)
+- Sector rotation (high volatility): monthly or quarterly
+- Threshold method: trigger when drift from target weight > 5%; usually beats fixed frequency
+
+**Low-cost rebalancing techniques**:
+- Direct new contributions to underweight positions to reduce selling
+- Route dividends to underweight assets first
+- In taxable accounts, sell the highest-cost-basis lots first (specific-lot identification)
+
+### 6.4 Tax Efficiency Considerations
+
+US ETF tax rules (individual investors, taxable accounts):
+- **Capital gains**:
+  - Short-term (held 1 year or less): taxed as ordinary income
+  - Long-term (held more than 1 year): 0% / 15% / 20% brackets, plus 3.8% NIIT for high earners
+  - Equity ETFs rarely distribute capital gains because in-kind redemptions flush out low-basis lots
+- **Distributions**:
+  - Qualified dividends are taxed at long-term capital-gains rates (60-day holding rule); non-qualified dividends at ordinary rates
+  - Bond ETF interest is ordinary income; Treasury interest is exempt from state tax; muni ETFs (MUB) are federally tax-exempt
+  - Futures-based commodity ETFs may issue a K-1 with 60/40 treatment; physically backed gold ETFs (GLD) are taxed as collectibles (28% maximum long-term rate)
+- **Tax-advantaged accounts (IRA / 401(k))**: no capital-gains tax on trades inside the account
+
+**Tax-efficiency strategies**:
+- Run high-turnover sector-rotation strategies inside an IRA where gains are not taxed
+- Hold long-term positions in taxable accounts for more than 1 year before selling
+- Tax-loss harvest by swapping into a similar but not "substantially identical" ETF (e.g. VOO to IVV to SPLG) while observing the 30-day wash-sale rule
+
+---
+
+## 7. Data Analysis Methods
+
+### 7.1 Fetching ETF Data
+
+For US-listed ETFs, use `get_market_data` (or the `yfinance` skill) for prices and the `us-etf-flow` skill for fund flows:
+
+```python
+import yfinance as yf
+import pandas as pd
+
+def get_us_etf_history(ticker: str, start: str, end: str) -> pd.DataFrame:
+    """
+    Daily OHLCV for a US-listed ETF (e.g. 'SPY'); prices are dividend-adjusted.
+
+    Args:
+        ticker: ETF ticker, e.g. 'SPY'
+        start: start date 'YYYY-MM-DD'
+        end: end date 'YYYY-MM-DD'
+
+    Returns:
+        DataFrame with Open, High, Low, Close, Volume indexed by date
+    """
+    return yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
+```
+
+The helpers below are the reference implementation on Tushare (A-share ETFs). Swap the loader and keep the downstream math unchanged:
 
 ```python
 import tushare as ts
@@ -530,30 +563,30 @@ import pandas as pd
 
 def get_etf_list(pro: ts.pro_api) -> pd.DataFrame:
     """
-    获取全市场ETF列表。
+    Fetch the full list of listed ETFs.
 
     Args:
-        pro: tushare pro_api 实例
+        pro: tushare pro_api instance
 
     Returns:
-        ETF基本信息 DataFrame
+        DataFrame of basic ETF information
     """
-    df = pro.fund_basic(market='E', status='L')  # E=ETF, L=上市中
+    df = pro.fund_basic(market='E', status='L')  # E=ETF, L=listed
     return df[['ts_code', 'name', 'management', 'found_date', 'issue_date']]
 
 
 def get_etf_nav(pro: ts.pro_api, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
     """
-    获取ETF净值数据（IOPV）。
+    Fetch ETF NAV data (IOPV).
 
     Args:
-        pro: tushare pro_api 实例
-        ts_code: ETF代码，如 '510300.SH'
-        start_date: 开始日期 'YYYYMMDD'
-        end_date: 结束日期 'YYYYMMDD'
+        pro: tushare pro_api instance
+        ts_code: ETF code, e.g. '510300.SH'
+        start_date: start date 'YYYYMMDD'
+        end_date: end date 'YYYYMMDD'
 
     Returns:
-        包含 trade_date, nav, accum_nav 的 DataFrame
+        DataFrame with trade_date, nav, accum_nav
     """
     df = pro.fund_nav(ts_code=ts_code, start_date=start_date, end_date=end_date)
     return df.sort_values('end_date').reset_index(drop=True)
@@ -561,16 +594,16 @@ def get_etf_nav(pro: ts.pro_api, ts_code: str, start_date: str, end_date: str) -
 
 def get_etf_daily(pro: ts.pro_api, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
     """
-    获取ETF场内日行情（市价）。
+    Fetch ETF exchange daily quotes (market price).
 
     Args:
-        pro: tushare pro_api 实例
-        ts_code: ETF代码
-        start_date: 开始日期
-        end_date: 结束日期
+        pro: tushare pro_api instance
+        ts_code: ETF code
+        start_date: start date
+        end_date: end date
 
     Returns:
-        包含 trade_date, open, high, low, close, vol, amount 的 DataFrame
+        DataFrame with trade_date, open, high, low, close, vol, amount
     """
     df = pro.fund_daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
     return df.sort_values('trade_date').reset_index(drop=True)
@@ -578,22 +611,22 @@ def get_etf_daily(pro: ts.pro_api, ts_code: str, start_date: str, end_date: str)
 
 def get_index_daily(pro: ts.pro_api, index_code: str, start_date: str, end_date: str) -> pd.DataFrame:
     """
-    获取基准指数日行情（用于计算跟踪误差）。
+    Fetch benchmark index daily quotes (used for tracking-error calculation).
 
     Args:
-        pro: tushare pro_api 实例
-        index_code: 指数代码，如 '000300.SH'（沪深300）
-        start_date: 开始日期
-        end_date: 结束日期
+        pro: tushare pro_api instance
+        index_code: index code, e.g. '000300.SH' (CSI 300)
+        start_date: start date
+        end_date: end date
 
     Returns:
-        包含 trade_date, close 的 DataFrame
+        DataFrame with trade_date, close
     """
     df = pro.index_daily(ts_code=index_code, start_date=start_date, end_date=end_date)
     return df[['trade_date', 'close', 'pct_chg']].sort_values('trade_date').reset_index(drop=True)
 ```
 
-### 7.2 跟踪误差计算代码模板
+### 7.2 Tracking-Error Calculation Template
 
 ```python
 import numpy as np
@@ -606,33 +639,33 @@ def calc_tracking_error(
     annualize: bool = True
 ) -> dict:
     """
-    计算ETF对标的指数的跟踪误差。
+    Calculate an ETF's tracking error against its benchmark index.
 
     Args:
-        etf_prices: ETF净值序列（以date为索引）
-        index_prices: 指数价格序列（以date为索引）
-        annualize: 是否年化，默认True
+        etf_prices: ETF NAV series (indexed by date)
+        index_prices: index price series (indexed by date)
+        annualize: whether to annualize, default True
 
     Returns:
-        包含 tracking_error, avg_daily_diff, max_daily_diff 的字典
+        dict with tracking_error, avg_daily_diff, max_daily_diff
     """
-    # 对齐数据
+    # Align the data
     aligned = pd.concat([etf_prices, index_prices], axis=1).dropna()
     aligned.columns = ['etf', 'index']
 
-    # 计算日收益率差值
+    # Daily return differences
     etf_ret = aligned['etf'].pct_change().dropna()
     idx_ret = aligned['index'].pct_change().dropna()
     daily_diff = etf_ret - idx_ret
 
-    # 跟踪误差 = 差值的标准差
+    # Tracking error = standard deviation of the differences
     te_daily = daily_diff.std()
     te = te_daily * np.sqrt(252) if annualize else te_daily
 
     return {
-        'tracking_error': round(te * 100, 4),       # 百分比
-        'avg_daily_diff': round(daily_diff.mean() * 100, 4),  # 平均日偏差 %
-        'max_daily_diff': round(daily_diff.abs().max() * 100, 4),  # 最大单日偏差 %
+        'tracking_error': round(te * 100, 4),       # percent
+        'avg_daily_diff': round(daily_diff.mean() * 100, 4),  # average daily deviation %
+        'max_daily_diff': round(daily_diff.abs().max() * 100, 4),  # largest single-day deviation %
         'annualized': annualize
     }
 
@@ -645,17 +678,17 @@ def compare_etfs_same_index(
     end_date: str
 ) -> pd.DataFrame:
     """
-    比较追踪同一指数的多只ETF的跟踪表现。
+    Compare the tracking performance of several ETFs on the same index.
 
     Args:
-        etf_codes: ETF代码列表
-        index_code: 基准指数代码
-        pro: tushare pro_api 实例
-        start_date: 开始日期
-        end_date: 结束日期
+        etf_codes: list of ETF codes
+        index_code: benchmark index code
+        pro: tushare pro_api instance
+        start_date: start date
+        end_date: end date
 
     Returns:
-        各ETF的跟踪误差比较 DataFrame
+        DataFrame comparing tracking error across ETFs
     """
     index_df = get_index_daily(pro, index_code, start_date, end_date)
     index_prices = index_df.set_index('trade_date')['close']
@@ -671,7 +704,7 @@ def compare_etfs_same_index(
     return pd.DataFrame(results).set_index('ts_code').sort_values('tracking_error')
 ```
 
-### 7.3 折溢价率监控
+### 7.3 Premium / Discount Monitoring
 
 ```python
 def calc_premium_discount(
@@ -679,22 +712,22 @@ def calc_premium_discount(
     iopv: float
 ) -> dict:
     """
-    计算ETF折溢价率及套利信号。
+    Calculate an ETF's premium/discount and arbitrage signal.
 
     Args:
-        market_price: ETF场内市价
-        iopv: 实时净值（IOPV）
+        market_price: ETF exchange market price
+        iopv: real-time indicative NAV (iNAV / IOPV)
 
     Returns:
-        包含 premium_pct, signal, arbitrage_feasible 的字典
+        dict with premium_pct, signal, arbitrage_feasible
     """
     premium_pct = (market_price - iopv) / iopv * 100
 
     if premium_pct > 0.3:
-        signal = 'PREMIUM_HIGH'   # 溢价：卖出ETF或申购套利
-        feasible = premium_pct > 0.5  # 扣除成本后是否可套利
+        signal = 'PREMIUM_HIGH'   # premium: sell the ETF or create shares
+        feasible = premium_pct > 0.5  # still profitable after costs?
     elif premium_pct < -0.3:
-        signal = 'DISCOUNT_HIGH'  # 折价：买入ETF或赎回套利
+        signal = 'DISCOUNT_HIGH'  # discount: buy the ETF or redeem shares
         feasible = premium_pct < -0.5
     else:
         signal = 'NORMAL'
@@ -709,21 +742,21 @@ def calc_premium_discount(
 
 def monitor_qdii_premium(pro, qdii_codes: list[str], date: str) -> pd.DataFrame:
     """
-    监控QDII ETF溢价率（溢价过高时发出预警）。
+    Monitor the premium of cross-border ETFs (alert when the premium is too high).
 
     Args:
-        pro: tushare pro_api 实例
-        qdii_codes: QDII ETF代码列表
-        date: 查询日期 'YYYYMMDD'
+        pro: tushare pro_api instance
+        qdii_codes: list of cross-border ETF codes
+        date: query date 'YYYYMMDD'
 
     Returns:
-        各QDII ETF的溢价率和风险等级 DataFrame
+        DataFrame of premium and risk level for each cross-border ETF
     """
     results = []
     for code in qdii_codes:
-        # 获取市价
+        # Market price
         price_df = pro.fund_daily(ts_code=code, trade_date=date)
-        # 获取净值
+        # NAV
         nav_df = pro.fund_nav(ts_code=code, end_date=date)
 
         if not price_df.empty and not nav_df.empty:
@@ -746,7 +779,7 @@ def monitor_qdii_premium(pro, qdii_codes: list[str], date: str) -> pd.DataFrame:
     return pd.DataFrame(results).sort_values('premium_pct', ascending=False)
 ```
 
-### 7.4 资金流入流出分析
+### 7.4 Fund Flow Analysis
 
 ```python
 def etf_fund_flow_analysis(
@@ -756,38 +789,38 @@ def etf_fund_flow_analysis(
     end_date: str
 ) -> pd.DataFrame:
     """
-    分析ETF规模变化与资金净流入/流出。
+    Analyze changes in ETF AUM and net inflows/outflows.
 
     Args:
-        pro: tushare pro_api 实例
-        ts_code: ETF代码
-        start_date: 开始日期
-        end_date: 结束日期
+        pro: tushare pro_api instance
+        ts_code: ETF code
+        start_date: start date
+        end_date: end date
 
     Returns:
-        包含规模变化和资金流向估算的 DataFrame
+        DataFrame with AUM changes and estimated fund flows
     """
     nav_df = get_etf_nav(pro, ts_code, start_date, end_date)
     nav_df['end_date'] = pd.to_datetime(nav_df['end_date'])
     nav_df = nav_df.sort_values('end_date')
 
-    # 规模（单位亿元）
+    # AUM (in units of 100 million)
     nav_df['scale'] = nav_df['unit_nav'] * nav_df['fund_share'] / 1e8
 
-    # 净值变动引起的规模变化（被动）
+    # AUM change caused by NAV movement (passive)
     nav_df['nav_return'] = nav_df['unit_nav'].pct_change()
     nav_df['passive_change'] = nav_df['scale'].shift(1) * nav_df['nav_return']
 
-    # 资金净流入 ≈ 规模变化 - 净值带来的被动变化
+    # Net inflow ~ AUM change - passive change from NAV
     nav_df['net_flow'] = nav_df['scale'].diff() - nav_df['passive_change']
 
-    # 统计区间
+    # Period summary
     summary = {
-        'total_net_flow': nav_df['net_flow'].sum(),       # 区间总净流入（亿元）
-        'avg_daily_flow': nav_df['net_flow'].mean(),      # 日均净流入
-        'inflow_days': (nav_df['net_flow'] > 0).sum(),    # 净流入天数
-        'outflow_days': (nav_df['net_flow'] < 0).sum(),   # 净流出天数
-        'current_scale': nav_df['scale'].iloc[-1]          # 最新规模
+        'total_net_flow': nav_df['net_flow'].sum(),       # total net inflow over the period
+        'avg_daily_flow': nav_df['net_flow'].mean(),      # average daily net inflow
+        'inflow_days': (nav_df['net_flow'] > 0).sum(),    # days with net inflow
+        'outflow_days': (nav_df['net_flow'] < 0).sum(),   # days with net outflow
+        'current_scale': nav_df['scale'].iloc[-1]          # latest AUM
     }
 
     return nav_df[['end_date', 'unit_nav', 'scale', 'net_flow']], summary
@@ -800,16 +833,16 @@ def cross_etf_flow_comparison(
     end_date: str
 ) -> pd.DataFrame:
     """
-    比较同类ETF的资金流向，判断资金偏好。
+    Compare fund flows across similar ETFs to gauge investor preference.
 
     Args:
-        pro: tushare pro_api 实例
-        etf_codes: 同类ETF代码列表
-        start_date: 开始日期
-        end_date: 结束日期
+        pro: tushare pro_api instance
+        etf_codes: list of comparable ETF codes
+        start_date: start date
+        end_date: end date
 
     Returns:
-        各ETF资金流向汇总对比 DataFrame
+        DataFrame summarizing and comparing fund flows across ETFs
     """
     rows = []
     for code in etf_codes:
@@ -821,50 +854,80 @@ def cross_etf_flow_comparison(
 
 ---
 
-## 8. 常见分析场景与提示词模板
+## 8. Common Analysis Scenarios and Prompt Templates
 
-### 场景 1：筛选同类最优 ETF
-
-```
-分析追踪 [沪深300/中证500/xxx] 指数的所有ETF，
-维度：规模、费率、近1年跟踪误差、日均成交额、买卖价差。
-给出综合评分排名，并推荐最适合[长期持有/波段操作/大额配置]的产品。
-```
-
-### 场景 2：行业 ETF 轮动信号
+### Scenario 1: Screen for the Best ETF in a Peer Group
 
 ```
-基于过去 [20/60] 日动量，在以下行业ETF中选出前3名：
-[消费、医疗、科技、能源、金融、工业、材料、公用事业]
-同时排除近30日跌幅超过15%的ETF。
+Analyze all ETFs tracking the [S&P 500 / Russell 2000 / xxx] index.
+Dimensions: AUM, expense ratio, 1-year tracking error, average daily dollar volume, bid-ask spread.
+Produce a composite score ranking and recommend the best product for [long-term holding / tactical trading / large allocations].
 ```
 
-### 场景 3：ETF 组合回测
+### Scenario 2: Sector ETF Rotation Signal
 
 ```
-构建以下ETF组合并回测 [2020-01-01 至 2025-12-31]：
-- 沪深300ETF 40%
-- 中证500ETF 20%
-- 国债ETF 30%
-- 黄金ETF 10%
-每季度再平衡，计算年化收益、夏普比率、最大回撤、与沪深300的相关性。
+Based on [20/60]-day momentum, select the top 3 from the following sector ETFs:
+[XLY, XLV, XLK, XLE, XLF, XLI, XLB, XLU]
+Also exclude any ETF that has fallen more than 15% over the past 30 days.
 ```
 
-### 场景 4：QDII 溢价风险监控
+### Scenario 3: ETF Portfolio Backtest
 
 ```
-监控以下QDII ETF的实时折溢价率：[纳指ETF 159632、标普500 513500、日经225 513880]
-溢价 > 3% 时发出预警，建议等待回落后再入场。
+Build the following ETF portfolio and backtest it over [2020-01-01 to 2025-12-31]:
+- SPY 40%
+- IWM 20%
+- IEF 30%
+- GLD 10%
+Rebalance quarterly; compute annualized return, Sharpe ratio, max drawdown, and correlation with the S&P 500.
+```
+
+### Scenario 4: International ETF Premium Monitoring
+
+```
+Monitor the real-time premium/discount of the following international ETFs: [EEM, EWJ, INDA]
+Alert when the premium exceeds 3% and recommend waiting for it to narrow before entering.
 ```
 
 ---
 
-## 9. 关键注意事项
+## 9. Key Points to Watch
 
-1. **停牌替代**：行业ETF中若有大量停牌股，IOPV 失真，折溢价参考意义下降
-2. **QDII 额度**：额度耗尽时申购暂停，溢价可能持续数月，不适合套利
-3. **成分股调整**：每年6月/12月指数调整前后1~2周会有一定规律性机会
-4. **杠杆ETF禁止长持**：衰减效应在震荡市中极其明显，严格限制持有周期
-5. **货币ETF**：本质是货币市场基金，与普通ETF逻辑不同，流动性管理工具而非投资工具
-6. **流动性差的ETF**：大额交易应拆分多日，避免自我冲击
-7. **税务处理**：ETF 基金分红中若含股息收益，征税规则与资本利得不同，注意区分
+1. **Halted or illiquid holdings**: when a sector or country ETF holds many halted names (e.g. Russia-exposed ETFs in 2022), iNAV is distorted and the premium/discount loses meaning
+2. **Creation suspensions**: when creations are halted (quota limits, futures position limits), the premium can persist for months and is unsuitable for arbitrage
+3. **Index reconstitutions**: the 1~2 weeks around S&P quarterly and Russell June rebalances show recurring patterns
+4. **Never hold leveraged ETFs long term**: decay is severe in choppy markets; strictly limit holding periods
+5. **T-bill / cash ETFs**: these are money-market substitutes with different logic from ordinary ETFs; liquidity-management tools, not investments
+6. **Thinly traded ETFs**: split large orders over several days, use limit orders, and avoid the first and last 15 minutes of the session
+7. **Tax treatment**: distributions can be qualified dividends, non-qualified dividends, or return of capital; commodity ETFs may issue K-1s; each is taxed differently from capital gains
+
+---
+
+## China market notes
+
+Mechanics specific to A-share and Hong Kong ETFs that have no direct US equivalent.
+
+**A-share ETF landscape**: broad-market CSI 300 ETF (510300), CSI 500 ETF (510500), ChiNext ETF (159915), STAR 50 ETF (588000); sector ETFs such as consumer (159928), health care (512170), semiconductor (512480), banks (512800); dividend ETF (510880); gold ETF (518880), soybean-meal ETF (159985), crude-oil ETF (162411); treasury ETF (511010), convertible-bond ETF (511380); money-market ETFs (511990, 511880) with T+0 subscription/redemption. Leading managers by AUM: ChinaAMC, E Fund, Huatai-PineBridge, China Southern, Harvest, Bosera. Typical A-share broad-market ETF fees: 0.15% management + 0.05% custody = 0.20%.
+
+**On-exchange ETFs vs off-exchange feeder funds**:
+
+| Dimension | On-exchange ETF | Feeder fund (ETF-linked fund) |
+|------|---------|-----------|
+| Purchase channel | Brokerage account, real-time trading | Bank / fund direct sales, T+1 subscription and redemption |
+| Creation/redemption | In-kind (institutions) or secondary market (individuals) | Cash |
+| Premium/discount | Exists (with arbitrage) | None |
+| Minimum trade size | 100 units (roughly RMB 10~100) | From RMB 1 |
+| Suited to | Tactical trading, large allocations | Periodic investing, small long-term holdings |
+
+**QDII (cross-border) ETFs**: quota limits mean creations are suspended once a manager's QDII quota is exhausted, so the arbitrage mechanism fails and premiums can persist for months; RMB depreciation lifts the NAV of offshore holdings; the A-share close precedes the US open, so IOPV lags. Apply the same 2% / 5% premium warning thresholds. Hedged share classes cost roughly the US-China rate differential (about 1.5~2.5% per year in 2025).
+
+**LOFs and structured funds**: LOFs trade both on and off exchange; the discount arbitrage path is buy on-exchange at a discount, transfer custody (T+2~T+3), redeem off-exchange, with NAV risk during the transfer. Structured (graded) funds with A (fixed-income) and B (leveraged) shares were fully converted to ordinary funds by 2020; the lower-threshold reset mechanism caused heavy B-share losses and premium arbitrage was squeezed.
+
+**CSI index system**: CSI 300 (largest 300 in Shanghai and Shenzhen, with IF futures and 300 options), CSI 500 (next 300~800, mid caps), CSI 1000 (800~1800, small caps), SSE 50 (largest 50 in Shanghai, financials-heavy), ChiNext Index, STAR 50, BSE 50, CSI All Share / Wind All A. CSI 300 and CSI 500 rebalance in June and December each year.
+
+**Thresholds in RMB terms**: AUM < RMB 200M carries closure risk (sustained 90-day average below RMB 50M is a liquidation signal), > RMB 1B is liquid, > RMB 10B is a flagship; average daily turnover > RMB 100M for broad ETFs and > RMB 20M for sector ETFs; the same-index screen drops products under RMB 500M. In-kind creation units are typically 1 million units. Cross-market arbitrage uses IF (CSI 300 index futures) basis; reverse arbitrage requires securities lending.
+
+**Tax**: individual investors pay no capital-gains tax on equity ETFs and cash distributions are tax-free; institutions include capital gains in the 25% corporate income tax, with dividends exempt when held over 12 months. Put high-turnover rotation in individual accounts.
+
+**Data**: Tushare `fund_basic(market='E', status='L')`, `fund_nav`, `fund_daily`, and `index_daily` (e.g. '000300.SH') as shown in Section 7.1; AUM in the fund-flow helper is expressed in RMB 100M units.

@@ -1,272 +1,282 @@
 ---
 name: fund-analysis
-description: 基金分析与筛选：晨星评级/夏普比率/信息比率、Sharpe风格箱分析、风格漂移检测、基金经理评价、FOF组合构建、ETF选择
+description: Analyze and screen mutual funds and ETFs using Morningstar ratings, Sharpe and information ratios, Sharpe style-box regression, style-drift detection, manager evaluation, ETF selection criteria, and fund-of-funds portfolio construction; use when evaluating, comparing, or selecting funds or building a multi-fund portfolio.
 category: asset-class
 ---
 
-# 基金分析与筛选
+# Fund Analysis and Screening
 
-## 概述
+## Overview
 
-系统化评估公募基金/私募基金/ETF的业绩表现、投资风格和管理能力，并构建FOF（基金中的基金）组合。核心目标：找到"可持续的超额收益来源"而非"过去业绩最好的基金"。
+Systematically evaluate the performance, investment style, and management quality of mutual funds, hedge funds, and ETFs, and build fund-of-funds (FOF) portfolios. Core objective: find "sustainable sources of excess return" rather than "the fund with the best past performance".
 
-适用场景：
-- 股票型/混合型基金的多维度筛选
-- 基金经理投资风格的归因与漂移检测
-- ETF产品的跟踪效率评估
-- FOF组合的资产配置与再平衡
-- A股公募基金的特有分析维度
+Use cases:
+- Multi-dimensional screening of equity and allocation (balanced) funds
+- Attribution of a fund manager's investment style and detection of style drift
+- Tracking-efficiency evaluation of ETF products
+- Asset allocation and rebalancing of a fund-of-funds portfolio
+- Market-specific analysis dimensions for China A-share mutual funds (see China market notes)
 
-## 核心概念
+## Core Concepts
 
-### 基金绩效指标体系
+### Fund Performance Metrics
 
-**收益类指标**：
-| 指标 | 公式 | 优秀阈值 | 说明 |
+**Return metrics**:
+| Metric | Formula | Good threshold | Notes |
 |------|------|----------|------|
-| 年化收益率 | (1+总收益)^(1/年数)-1 | > 15% (股基) | 绝对收益 |
-| 超额收益(Alpha) | 基金收益-基准收益 | > 5%/年 | 相对基准 |
-| 信息比率(IR) | Alpha / 跟踪误差 | > 0.5 | Alpha稳定性 |
-| 胜率 | 跑赢基准的月份占比 | > 55% | 一致性 |
+| Annualized return | (1+total return)^(1/years)-1 | > 15% (equity funds) | Absolute return |
+| Excess return (Alpha) | Fund return - benchmark return | > 5%/yr | Relative to benchmark |
+| Information ratio (IR) | Alpha / tracking error | > 0.5 | Alpha consistency |
+| Hit rate | Share of months beating the benchmark | > 55% | Consistency |
 
-**风险类指标**：
-| 指标 | 公式 | 优秀阈值 | 说明 |
+**Risk metrics**:
+| Metric | Formula | Good threshold | Notes |
 |------|------|----------|------|
-| 最大回撤 | max(peak-trough)/peak | < 20% (股基) | 极端风险 |
-| 年化波动率 | std(日收益)*√252 | < 20% (股基) | 总风险 |
-| 下行标准差 | std(负收益)*√252 | < 13% | 下行风险 |
-| Calmar比率 | 年化收益/最大回撤 | > 1.0 | 收益/极端风险 |
+| Max drawdown | max(peak-trough)/peak | < 20% (equity funds) | Tail risk |
+| Annualized volatility | std(daily returns)*√252 | < 20% (equity funds) | Total risk |
+| Downside deviation | std(negative returns)*√252 | < 13% | Downside risk |
+| Calmar ratio | Annualized return / max drawdown | > 1.0 | Return per unit of tail risk |
 
-**风险调整指标**：
-| 指标 | 公式 | 优秀阈值 | 说明 |
+**Risk-adjusted metrics**:
+| Metric | Formula | Good threshold | Notes |
 |------|------|----------|------|
-| 夏普比率 | (Rp-Rf)/σp | > 1.0 | 每单位风险收益 |
-| Sortino比率 | (Rp-Rf)/下行σ | > 1.5 | 更关注下行风险 |
-| Treynor比率 | (Rp-Rf)/β | > 10% | 每单位系统风险收益 |
+| Sharpe ratio | (Rp-Rf)/σp | > 1.0 | Return per unit of total risk |
+| Sortino ratio | (Rp-Rf)/downside σ | > 1.5 | Focuses on downside risk |
+| Treynor ratio | (Rp-Rf)/β | > 10% | Return per unit of systematic risk |
 
 ```
-无风险利率(Rf): A股通常用1年期国债收益率, 约2.0-2.5%
-基准: 股票型→沪深300; 混合型→沪深300×60%+中证全债×40%
-评估周期: 至少3年，推荐5年（覆盖完整牛熊周期）
+Risk-free rate (Rf): US convention is the 3-month T-bill yield (or 1-year Treasury), roughly 4-5% in the current cycle
+Benchmark: equity funds → S&P 500 (SPY); allocation funds → 60% S&P 500 + 40% Bloomberg US Aggregate Bond (AGG)
+Evaluation window: at least 3 years, 5 years preferred (covers a full bull/bear cycle)
 ```
 
-### Sharpe风格箱分析
+### Sharpe Style-Box Analysis
 
-**九宫格风格分类**：
+**Nine-box style classification**:
 ```
-          价值     平衡     成长
-大盘    大盘价值  大盘平衡  大盘成长
-中盘    中盘价值  中盘平衡  中盘成长
-小盘    小盘价值  小盘平衡  小盘成长
+            Value        Blend        Growth
+Large    Large Value   Large Blend   Large Growth
+Mid      Mid Value     Mid Blend     Mid Growth
+Small    Small Value   Small Blend   Small Growth
 
-判定方法（回归法）:
-  Ri = α + β1×大盘价值 + β2×大盘成长 + β3×小盘价值 + β4×小盘成长 + ε
+Determination method (returns-based regression):
+  Ri = α + β1×Large Value + β2×Large Growth + β3×Small Value + β4×Small Growth + ε
 
-  风格指数选择(A股):
-  大盘价值: 沪深300价值 (399346)
-  大盘成长: 沪深300成长 (399370)
-  小盘价值: 中证500价值 (930782)
-  小盘成长: 中证500成长 (930783)
+  Style index selection (US):
+  Large Value:  Russell 1000 Value (IWD)
+  Large Growth: Russell 1000 Growth (IWF)
+  Small Value:  Russell 2000 Value (IWN)
+  Small Growth: Russell 2000 Growth (IWO)
 
-  β权重最大的方向 = 基金主风格
-  R² > 0.85 → 风格明确; R² < 0.70 → 风格模糊/择时型
-```
-
-### 风格漂移检测
-
-```
-方法: 滚动窗口回归 (窗口=60个交易日, 步长=20日)
-
-漂移判定:
-  1. 计算每个窗口的风格权重β
-  2. 相邻窗口β变化:
-     |Δβ| > 0.2 → 显著漂移
-     最大β对应的风格变了 → 风格切换
-
-  3. R²时序:
-     R²持续下降 → 基金经理在做择时/偏离基准
-     R²忽高忽低 → 风格不稳定
-
-漂移类型:
-  - 渐进漂移: 大盘→中盘→小盘 (通常是规模增长后被迫下沉)
-  - 突变漂移: 价值突然切换成长 (可能换了基金经理)
-  - 周期漂移: 牛市追成长、熊市转价值 (择时型)
-
-A股常见漂移:
-  2020-2021: 大量"价值型"基金实际持仓转向新能源/半导体(成长)
-  检测: 申报风格=大盘价值, 实际回归风格=大盘成长 → 名不副实
+  Direction with the largest β weight = the fund's primary style
+  R² > 0.85 → clear style; R² < 0.70 → ambiguous style / market-timing fund
 ```
 
-## 分析框架
-
-### 1. 基金筛选框架（五步法）
+### Style-Drift Detection
 
 ```
-Step 1: 硬指标过滤
-  □ 成立 ≥ 3年
-  □ 规模 2-100亿（太小清盘风险, 太大船大难掉头）
-  □ 同一基金经理管理 ≥ 2年
-  □ 机构持有比例 > 20%（机构认可）
+Method: rolling-window regression (window = 60 trading days, step = 20 days)
 
-Step 2: 绩效排序
-  □ 近3年年化收益 > 同类中位数
-  □ 近3年夏普比率 > 同类前30%
-  □ 最大回撤 < 同类中位数
-  □ 信息比率 > 0.3
+Drift criteria:
+  1. Compute the style weights β for each window
+  2. Change in β between adjacent windows:
+     |Δβ| > 0.2 → significant drift
+     The style with the largest β changed → style switch
 
-Step 3: 风格验证
-  □ 实际风格与申报风格一致（R² > 0.8）
-  □ 风格漂移得分 < 0.3（稳定）
-  □ 近1年风格与近3年一致
+  3. R² time series:
+     R² steadily declining → manager is timing / deviating from the benchmark
+     R² swinging up and down → unstable style
 
-Step 4: 基金经理评价
-  □ 管理同类基金 ≥ 3年
-  □ 历史任职基金收益均为正超额
-  □ 换手率合理（年化200-400%为正常, >600%过高）
-  □ 持股集中度适中（前10大持仓40-70%）
+Drift types:
+  - Gradual drift: large → mid → small cap (usually forced down-cap after asset growth)
+  - Abrupt drift: value suddenly switches to growth (possibly a manager change)
+  - Cyclical drift: chases growth in bull markets, rotates to value in bear markets (timing fund)
 
-Step 5: 费用检查
-  □ 管理费 ≤ 1.5%（主动股基）
-  □ 无惩罚性赎回费（持有>1年免赎回费）
-  □ 托管费 ≤ 0.25%
+Common US drift pattern:
+  2020-2021: many self-described "value" funds drifted holdings toward mega-cap tech / software (growth)
+  Detection: stated style = Large Value, regressed style = Large Growth → mislabeled fund
 ```
 
-### 2. 基金经理评价
+## Analysis Framework
+
+### 1. Fund Screening Framework (Five Steps)
 
 ```
-核心维度:
-  1. 超额收益能力:
-     任职年化Alpha (相对基准)
-     牛市Alpha vs 熊市Alpha (优秀经理熊市也有超额)
+Step 1: Hard filters
+  □ Inception ≥ 3 years
+  □ AUM $200M-$20B (too small = liquidation/merger risk, too large = hard to maneuver)
+  □ Same manager in place ≥ 2 years
+  □ Institutional ownership > 20% (institutional endorsement)
 
-  2. 风险控制:
-     最大回撤 vs 基准最大回撤
-     下行捕获比率 < 0.8 → 善于控制下行风险
-     上行捕获比率 > 1.0 → 上涨行情不掉队
+Step 2: Performance ranking
+  □ 3-year annualized return > Morningstar category median
+  □ 3-year Sharpe ratio > top 30% of category
+  □ Max drawdown < category median
+  □ Information ratio > 0.3
 
-  3. 选股能力 vs 择时能力 (T-M模型):
+Step 3: Style verification
+  □ Actual style matches stated style (R² > 0.8)
+  □ Style-drift score < 0.3 (stable)
+  □ 1-year style consistent with 3-year style
+
+Step 4: Manager evaluation
+  □ Has managed funds in the same category ≥ 3 years
+  □ Positive excess return across every previously managed fund
+  □ Reasonable turnover (annualized 30-100% is typical; >200% is high)
+  □ Moderate concentration (top 10 holdings 30-60%)
+
+Step 5: Fee check
+  □ Expense ratio ≤ 1.0% (active equity funds)
+  □ No front-end load and no punitive redemption fee (or a no-load share class is available)
+  □ 12b-1 fee ≤ 0.25%
+```
+
+### 2. Fund Manager Evaluation
+
+```
+Core dimensions:
+  1. Excess-return ability:
+     Annualized Alpha over tenure (vs. benchmark)
+     Bull-market Alpha vs. bear-market Alpha (great managers add value in bear markets too)
+
+  2. Risk control:
+     Max drawdown vs. benchmark max drawdown
+     Downside capture ratio < 0.8 → good at limiting downside
+     Upside capture ratio > 1.0 → keeps pace in rallies
+
+  3. Stock selection vs. market timing (Treynor-Mazuy model):
      Ri-Rf = α + β(Rm-Rf) + γ(Rm-Rf)² + ε
-     α > 0 → 有选股能力
-     γ > 0 → 有择时能力
-     A股实证: 大部分基金经理有选股能力, 少有择时能力
+     α > 0 → stock-selection skill
+     γ > 0 → market-timing skill
+     Empirical evidence: most managers show some selection skill, very few show timing skill
 
-  4. 持仓特征:
-     换手率: <200%=长期持有; 200-400%=适中; >600%=频繁交易
-     持股集中度: 前10大占比, >70%=集中, <40%=分散
-     行业偏离度: 相对基准的行业超/低配幅度
+  4. Holding characteristics:
+     Turnover: <30% = long-term holder; 30-100% = moderate; >200% = frequent trading
+     Concentration: top-10 weight, >60% = concentrated, <30% = diversified
+     Sector deviation: over/underweight vs. benchmark GICS sectors
 
-经理更换信号:
-  基金经理变更公告日起:
-  - 新经理来自同一公司、风格相近 → 影响小
-  - 新经理风格截然不同 → 重新评估, 观察1-2个季度再决定
-  - 明星经理离职 → 考虑赎回, 跟踪新经理的其他产品
+Manager-change signals:
+  From the manager-change announcement date:
+  - New manager from the same firm with a similar style → limited impact
+  - New manager with a very different style → re-evaluate, observe 1-2 quarters before deciding
+  - Star manager departs → consider redeeming, track the new manager's other products
 ```
 
-### 3. ETF选择框架
+### 3. ETF Selection Framework
 
 ```
-核心标准:
-  1. 跟踪误差: 年化 < 2% (被动) / < 4% (增强)
-     计算: std(ETF日收益 - 指数日收益) × √252
+Core criteria:
+  1. Tracking error: annualized < 2% (passive) / < 4% (enhanced or active)
+     Calculation: std(ETF daily return - index daily return) × √252
 
-  2. 费率比较:
-     管理费: 0.15%(最低) ~ 0.50%(普通)
-     托管费: 0.05% ~ 0.10%
-     综合费率差 0.2%/年，10年累积差异显著
+  2. Fee comparison:
+     Expense ratio: 0.03% (lowest) ~ 0.50% (typical)
+     A 0.2%/yr fee gap compounds into a meaningful difference over 10 years
 
-  3. 流动性:
-     日均成交额 > 1亿 → 流动性充足
-     买卖价差 < 0.1% → 交易成本低
-     折溢价率 < 0.3% → 定价准确
+  3. Liquidity:
+     Average daily dollar volume > $50M → ample liquidity
+     Bid-ask spread < 0.1% → low trading cost
+     Premium/discount to NAV < 0.3% → accurate pricing
 
-  4. 规模:
-     > 10亿 → 清盘风险极低
-     2-10亿 → 可接受
-     < 2亿 → 需关注是否有清盘风险
+  4. Size:
+     > $1B AUM → negligible closure risk
+     $200M-$1B → acceptable
+     < $200M → check for closure risk
 
-A股主流宽基ETF对比(示例):
-  | ETF | 代码 | 费率 | 规模 | 跟踪误差 |
+Major US broad-market ETF comparison (example):
+  | ETF | Ticker | Expense ratio | AUM | Tracking error |
   |-----|------|------|------|----------|
-  | 华泰柏瑞沪深300ETF | 510300 | 0.20% | 800亿+ | 0.5% |
-  | 易方达沪深300ETF | 510310 | 0.20% | 200亿+ | 0.6% |
-  | 华夏上证50ETF | 510050 | 0.50% | 500亿+ | 0.4% |
-  | 南方中证500ETF | 510500 | 0.20% | 400亿+ | 0.8% |
+  | SPDR S&P 500 ETF | SPY | 0.09% | $500B+ | 0.05% |
+  | Vanguard S&P 500 ETF | VOO | 0.03% | $400B+ | 0.03% |
+  | Invesco QQQ (Nasdaq-100) | QQQ | 0.20% | $250B+ | 0.10% |
+  | iShares Russell 2000 ETF | IWM | 0.19% | $60B+ | 0.15% |
 ```
 
-### 4. FOF组合构建
+### 4. Fund-of-Funds Portfolio Construction
 
 ```
-Step 1: 大类资产配置
-  保守型: 股基30% + 债基50% + 货基20%
-  均衡型: 股基50% + 债基30% + 商品10% + 货基10%
-  激进型: 股基70% + 债基20% + 商品10%
+Step 1: Strategic asset allocation
+  Conservative: equity funds 30% + bond funds 50% + money market 20%
+  Balanced:     equity funds 50% + bond funds 30% + commodities 10% + money market 10%
+  Aggressive:   equity funds 70% + bond funds 20% + commodities 10%
 
-Step 2: 细分资产选基
-  每个资产类别选 2-3 只基金（分散管理人风险）
+Step 2: Fund selection within each sleeve
+  Pick 2-3 funds per asset class (diversify manager risk)
 
-  股票部分:
-    大盘价值 1只 + 大盘成长 1只 + 中小盘 1只
-    风格互补, 降低单一风格暴露
+  Equity sleeve:
+    1 large value + 1 large growth + 1 small/mid cap
+    Complementary styles reduce single-style exposure
 
-  债券部分:
-    纯债 1只 + 转债增强 1只
-    控制信用风险, 不追高收益债
+  Bond sleeve:
+    1 core investment-grade bond fund + 1 convertible or multi-sector fund
+    Control credit risk, do not chase high-yield
 
-Step 3: 再平衡规则
-  定期: 每季度检查一次偏离度
-  触发: 任一资产偏离目标权重 > 5% → 再平衡
+Step 3: Rebalancing rules
+  Scheduled: check deviation once per quarter
+  Trigger: any sleeve deviates from target weight by > 5% → rebalance
 
-  再平衡方法:
-    a. 卖出超配、买入低配 → 交易成本高
-    b. 增量资金买入低配 → 减少交易频率
-    c. 分红再投资到低配 → 最优方案
+  Rebalancing methods:
+    a. Sell overweight, buy underweight → highest trading cost (and taxable gains in a brokerage account)
+    b. Direct new contributions to underweight sleeves → fewer trades
+    c. Reinvest distributions into underweight sleeves → best option
 
-Step 4: 监控预警
-  □ 季度绩效回顾: 任一基金连续2个季度排名后30% → 观察
-  □ 基金经理变更 → 重新评估
-  □ 风格漂移 → 替换为风格稳定的同类基金
-  □ 规模异常(暴增/暴降) → 关注流动性冲击
+Step 4: Monitoring and alerts
+  □ Quarterly performance review: any fund in the bottom 30% of its category for 2 consecutive quarters → watch list
+  □ Manager change → re-evaluate
+  □ Style drift → replace with a style-consistent peer
+  □ Abnormal AUM change (surge/collapse) → watch for liquidity impact
 ```
 
-## 输出格式
+## Output Format
 
-基金分析报告：
+Fund analysis report:
 ```
-=== 基金概况 ===
-名称: 易方达蓝筹精选混合 (005827)
-经理: 张坤  任职: 2018-01-05 (8年)
-规模: 450亿  风格: 大盘成长
+=== Fund Overview ===
+Name: Fidelity Contrafund (FCNTX)
+Manager: Will Danoff  Tenure since: 1990-09 (35 yrs)
+AUM: $140B  Style: Large Growth
 
-=== 绩效评估 (近3年) ===
-年化收益: 12.5% (同类前25%)
-夏普比率: 0.85 (同类前20%)
-最大回撤: -28.3% (同类中位-25.6%)
-信息比率: 0.62
-Calmar比率: 0.44
-胜率: 58% (月度跑赢基准)
+=== Performance Review (3-year) ===
+Annualized return: 12.5% (top 25% of category)
+Sharpe ratio: 0.85 (top 20% of category)
+Max drawdown: -28.3% (category median -25.6%)
+Information ratio: 0.62
+Calmar ratio: 0.44
+Hit rate: 58% (monthly, vs. benchmark)
 
-=== 风格分析 ===
-回归风格: 大盘成长 (R²=0.91)
-风格漂移: 低 (近1年与近3年一致)
-持股集中度: 前10大持仓68%
-换手率: 年化150% (低换手, 长期持有)
+=== Style Analysis ===
+Regressed style: Large Growth (R²=0.91)
+Style drift: low (1-year consistent with 3-year)
+Concentration: top 10 holdings 68%
+Turnover: 25% annualized (low turnover, long-term holder)
 
-=== 评价 ===
-优势: 选股能力强(Alpha显著), 风格稳定
-劣势: 规模过大可能影响操作灵活性, 回撤控制一般
-建议: 适合作为FOF组合中的大盘成长配置, 仓位15-20%
+=== Assessment ===
+Strengths: strong stock selection (significant Alpha), stable style
+Weaknesses: very large AUM may limit flexibility, drawdown control is average
+Recommendation: suitable as the large-growth sleeve of an FOF portfolio, 15-20% weight
 ```
 
-## 注意事项
+## Notes
 
-1. **幸存者偏差**：基金数据库中已清盘基金可能被排除，导致历史平均业绩偏高
-2. **规模效应**：基金规模超过200亿后，小盘股策略难以执行，Alpha可能下降
-3. **季末效应**：部分基金在季末存在"粉饰橱窗"行为（季末买入重仓股拉净值），需用月中数据交叉验证
-4. **申赎冲击**：大规模申购/赎回影响基金收益（摊薄/被迫卖出），关注份额变动
-5. **费率拖累**：长期来看，费率差异对累计收益影响显著。10年期 1.5% vs 0.5% 费率差 → 约10%累计收益差
-6. **指数增强真假**：部分"指数增强"实际偏离基准极大（跟踪误差>8%），实质是主动管理披着增强外衣
+1. **Survivorship bias**: liquidated or merged funds may be excluded from fund databases, inflating historical average performance
+2. **Size effect**: once AUM exceeds roughly $50B, small-cap strategies become hard to execute and Alpha may decline
+3. **Quarter-end effect**: some funds engage in "window dressing" (buying top holdings into quarter-end to lift NAV); cross-check with mid-month data
+4. **Flow impact**: large subscriptions/redemptions affect fund returns (dilution / forced selling); monitor share-count changes
+5. **Fee drag**: over the long run, fee differences have a significant impact on cumulative return. A 1.5% vs 0.5% fee gap over 10 years → roughly 10% cumulative return difference
+6. **"Enhanced index" in name only**: some "enhanced index" or "index-plus" funds deviate wildly from their benchmark (tracking error > 8%); they are effectively active management under a passive label
 
-## 依赖
+## China market notes
+
+For A-share mutual funds, substitute the following market-specific parameters:
+- Risk-free rate: 1-year Chinese government bond yield, about 2.0-2.5%; benchmark: equity funds → CSI 300, balanced funds → 60% CSI 300 + 40% ChinaBond Composite
+- Style indices for regression: CSI 300 Value (399346), CSI 300 Growth (399370), CSI 500 Value (930782), CSI 500 Growth (930783)
+- Screening norms: AUM CNY 200M-10B; management fee ≤ 1.5% and custody fee ≤ 0.25%; no redemption fee after holding > 1 year; annualized turnover 200-400% is normal and > 600% is high; top-10 concentration 40-70% is typical; size effect kicks in above CNY 20B
+- ETF thresholds: daily turnover > CNY 100M for ample liquidity; AUM > CNY 1B for negligible closure risk, < CNY 200M needs closure-risk review
+- Major A-share broad-market ETFs: Huatai-PineBridge CSI 300 ETF (510300, 0.20%), E Fund CSI 300 ETF (510310, 0.20%), ChinaAMC SSE 50 ETF (510050, 0.50%), Southern CSI 500 ETF (510500, 0.20%)
+- Typical A-share drift: in 2020-2021 many "value" funds moved into new energy / semiconductors (growth); check stated vs regressed style
+- Institutional ownership > 20% is disclosed semi-annually and is a useful quality filter
+
+## Dependencies
 
 ```bash
 pip install pandas numpy scipy

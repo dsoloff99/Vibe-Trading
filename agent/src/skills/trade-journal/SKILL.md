@@ -1,13 +1,13 @@
 ---
 name: trade-journal
-description: Analyze a user's trade journal (CSV/Excel broker export). Parses 同花顺/东方财富/富途/generic formats, produces a trading profile and 4 behavior diagnostics (disposition effect, overtrading, chasing, anchoring). Use the `analyze_trade_journal` tool.
+description: Analyze a user's trade journal (CSV/Excel broker export) — parses Tonghuashun / Eastmoney / Futu / generic CSV (Schwab, Fidelity, IBKR, Robinhood exports) and produces a trading profile plus 4 behavior diagnostics (disposition effect, overtrading, chasing, anchoring) via the `analyze_trade_journal` tool.
 category: tool
 ---
 # Trade Journal Analysis
 
 ## Purpose
 
-Users upload broker exports (交割单) and get an honest, data-grounded portrait
+Users upload broker exports (trade confirmation / settlement statements) and get an honest, data-grounded portrait
 of their own trading. Two layers are live:
 
 - **Profile** — holding days, frequency, win rate, PnL ratio, cumulative PnL,
@@ -19,9 +19,9 @@ of their own trading. Two layers are live:
 Strategy extraction → backtest bridge lands in Phase 4c.
 
 Supported formats (auto-detected):
-- **同花顺** (Tonghuashun) — A-share CSV, typically GBK-encoded
-- **东方财富** (Eastmoney) — A-share CSV, typically GBK-encoded
-- **富途** (Futu) — HK/US CSV, UTF-8
+- **Tonghuashun** — A-share CSV, typically GBK-encoded
+- **Eastmoney** — A-share CSV, typically GBK-encoded
+- **Futu** — HK/US CSV, UTF-8
 - **Generic** — any CSV with columns like `datetime/symbol/side/qty/price`
 
 ## Usage
@@ -87,30 +87,30 @@ readers skimming on a phone.
 ### Report template
 
 ```
-## 你的交易画像 — {date_range}
+## Your Trading Profile — {date_range}
 
-**总体**
-- 交易笔数：{total_trades}（完整来回 {total_roundtrips} 次）
-- 平均持仓：{avg_holding_days} 天
-- 交易频率：{trade_frequency_per_week} 次/周
-- 胜率：{win_rate:.0%}
-- 盈亏比：{profit_loss_ratio}
-- 累计盈亏：{total_pnl}
-- 最大回撤：{max_drawdown}
+**Overview**
+- Trades: {total_trades} ({total_roundtrips} completed round trips)
+- Avg holding period: {avg_holding_days} days
+- Trade frequency: {trade_frequency_per_week} per week
+- Win rate: {win_rate:.0%}
+- Profit/loss ratio: {profit_loss_ratio}
+- Cumulative PnL: {total_pnl}
+- Max drawdown: {max_drawdown}
 
-**最常交易的标的**（前 5 名）
-| 标的 | 笔数 | 成交额 |
-|------|------|--------|
+**Most-traded symbols** (top 5)
+| Symbol | Trades | Turnover |
+|--------|--------|----------|
 | ... | ... | ... |
 
-**市场分布**
+**Market breakdown**
 {market_distribution}
 
-**交易时段**
+**Trading hours**
 {hourly_distribution — highlight peak hours}
 
-**一句话观察**
-（根据数据写 1-2 句：过度交易？只做窄范围标的？集中在某时段？）
+**One-line observation**
+(Write 1-2 sentences from the data: overtrading? a narrow set of symbols? concentrated in one time window?)
 ```
 
 Guidance:
@@ -125,10 +125,10 @@ Guidance:
 ## Follow-up dialogue
 
 After the initial report, users typically ask:
-- **Time-slice**: "3 月份表现怎么样" → re-call with `filter_expr="2026-03-01 to 2026-03-31"`.
-- **Symbol deep-dive**: "茅台这只赚了多少" → `filter_expr="symbol=600519.SH"`.
-- **Market split**: "港股和美股分开看" → two calls, `market=hk` and `market=us`.
-- **Hypothetical** ("如果我严格止损 -5%") → Phase 4b feature; for now tell the
+- **Time-slice**: "How did March go?" → re-call with `filter_expr="2026-03-01 to 2026-03-31"`.
+- **Symbol deep-dive**: "How much did I make on Moutai?" → `filter_expr="symbol=600519.SH"`.
+- **Market split**: "Show HK and US separately" → two calls, `market=hk` and `market=us`.
+- **Hypothetical** ("What if I had used a strict -5% stop loss?") → Phase 4b feature; for now tell the
   user this is on the roadmap.
 
 Do NOT re-upload — the file path is still valid for subsequent tool calls
@@ -187,23 +187,23 @@ Under `result["behavior"]`:
 | **Chasing** | fraction of buys after 3-trade rolling +3% move | ≥ 40% | ≥ 60% |
 | **Anchoring** | fraction of ≥5-trade symbols with price CV < 5% | ≥ 33% | ≥ 66% |
 
-### Report section (Chinese)
+### Report section (template)
 
 ```
-## 行为偏差诊断
+## Behavioral Bias Diagnostics
 
-| 偏差 | 严重程度 | 核心证据 |
-|------|----------|----------|
-| 处置效应 | {high/medium/low} | {evidence} |
-| 过度交易 | {...} | {...} |
-| 追涨杀跌 | {...} | {...} |
-| 锚定效应 | {...} | {...} |
+| Bias | Severity | Key evidence |
+|------|----------|--------------|
+| Disposition effect | {high/medium/low} | {evidence} |
+| Overtrading | {...} | {...} |
+| Chasing momentum | {...} | {...} |
+| Anchoring | {...} | {...} |
 
-**改进建议**（根据检测到的 high/medium 项生成）：
-- 处置效应 high → 写死止损（例如 -8%），盈利持仓不要过早兑现
-- 过度交易 high → 每日交易次数 <= N 的硬约束
-- 追涨杀跌 high → 改买回调而不是新高，设置"涨幅 X% 以上当日不追"规则
-- 锚定效应 high → 扩宽价格带，不要死守某个"心理价"
+**Improvement suggestions** (generated from the high/medium items detected):
+- Disposition effect high → hard-code a stop loss (e.g. -8%); don't cash out winning positions too early
+- Overtrading high → hard cap of <= N trades per day
+- Chasing momentum high → buy pullbacks instead of new highs; set a rule like "no chasing on a day the stock is already up more than X%"
+- Anchoring high → widen your price band; don't cling to a single "mental price"
 ```
 
 ## Phase 4c preview (not yet implemented)
