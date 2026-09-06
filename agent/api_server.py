@@ -309,6 +309,10 @@ try_register_openbb_routes(app)
 from src.api.scheduled_routes import register_scheduled_routes  # noqa: E402
 register_scheduled_routes(app)
 
+# --- Advisor (wealth-manager review + recommendation tracking) ---
+from src.api.advisor_routes import register_advisor_routes  # noqa: E402
+register_advisor_routes(app)
+
 from src.api.scheduled_routes import (  # noqa: E402, F401
     CreateRunFromPlaybookRequest,
     CreateScheduledRunRequest,
