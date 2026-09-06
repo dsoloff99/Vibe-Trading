@@ -63,7 +63,7 @@ Non-negotiable rules
 
 Recommendation fields
 - action: buy | sell | trim | hold
-- amount_usd: dollars to buy or sell. Required for buy and trim unless target_weight is given. Omit for hold and for a full sell.
+- amount_usd: dollars to buy or sell. Required for buy and trim unless target_weight is given. Omit for hold; for sell, omit to sell the whole position or give an amount for a partial sale.
 - target_weight: desired weight of TOTAL portfolio after the trade (0-1). Alternative to amount_usd.
 - account_id: the account to trade in, from the evidence; null lets the tracker pick (most cash for buys, largest holding for sells).
 - confidence: 0-1, your honest probability that the recommendation beats holding the benchmark over the horizon.
@@ -88,19 +88,30 @@ def build_messages(objectives: Objectives, evidence: dict[str, Any]) -> list[dic
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
-_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
+_FENCED = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
+
+
+def _candidates(text: str) -> list[str]:
+    """JSON candidates in priority order: fenced block, then outermost braces."""
+    out = [m.group(1) for m in _FENCED.finditer(text)]
+    start, end = text.find("{"), text.rfind("}")
+    if start >= 0 and end > start:
+        out.append(text[start:end + 1])
+    return out
 
 
 def parse_review(text: str) -> ReviewOut:
     """Parse the model reply into a validated ReviewOut; raises ValueError on failure."""
-    body = _FENCE.sub("", (text or "").strip()).strip()
-    start, end = body.find("{"), body.rfind("}")
-    if start < 0 or end <= start:
-        raise ValueError("reply contained no JSON object")
-    try:
-        data = json.loads(body[start:end + 1])
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"reply was not valid JSON: {exc}") from exc
+    data = None
+    last_error = "reply contained no JSON object"
+    for candidate in _candidates((text or "").strip()):
+        try:
+            data = json.loads(candidate)
+            break
+        except json.JSONDecodeError as exc:
+            last_error = f"reply was not valid JSON: {exc}"
+    if data is None:
+        raise ValueError(last_error)
     try:
         return ReviewOut.model_validate(data)
     except ValidationError as exc:

@@ -1,7 +1,6 @@
 """Pydantic models shared by the advisor store, service, routes and prompt."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Literal
 from uuid import uuid4
 
@@ -11,11 +10,7 @@ AccountType = Literal[
     "taxable", "roth_ira", "traditional_ira", "401k", "hsa", "crypto", "other"
 ]
 Action = Literal["buy", "sell", "trim", "hold"]
-Decision = Literal["open", "accepted", "rejected", "expired"]
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+Decision = Literal["open", "accepted", "rejected"]
 
 
 def new_id(prefix: str) -> str:
@@ -41,13 +36,13 @@ class AccountIn(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     type: AccountType = "taxable"
     cash_usd: float = Field(0.0, ge=0)
-    positions: list[PositionIn] = Field(default_factory=list)
+    positions: list[PositionIn] = Field(default_factory=list, max_length=500)
 
 
 class HoldingsIn(BaseModel):
-    accounts: list[AccountIn] = Field(..., min_length=1)
+    accounts: list[AccountIn] = Field(..., min_length=1, max_length=50)
     source: str = Field("finance-app", max_length=64)
-    as_of: str | None = Field(None, description="ISO date the app fetched balances")
+    as_of: str | None = Field(None, max_length=32, description="ISO date the app fetched balances")
 
 
 class Objectives(BaseModel):
@@ -77,7 +72,7 @@ class RecommendationOut(BaseModel):
     action: Action
     symbol: str = Field(..., min_length=1, max_length=32)
     account_id: str | None = Field(None, description="Which account to act in; null = advisor's choice")
-    amount_usd: float | None = Field(None, gt=0, description="Dollars to buy or sell; omit for hold or full sell")
+    amount_usd: float | None = Field(None, gt=0, description="Dollars to buy or sell; omit for hold, or for a sell to mean the whole position")
     target_weight: float | None = Field(None, ge=0, le=1, description="Desired weight of total portfolio after the trade")
     rationale: str = Field(..., min_length=10, max_length=1200)
     confidence: float = Field(..., ge=0, le=1)

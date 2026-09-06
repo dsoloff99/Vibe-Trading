@@ -11,10 +11,27 @@ from typing import Any
 
 import pandas as pd
 
-from src.advisor.pricing import is_cash_like
+from src.advisor.pricing import infer_asset_class, is_cash_like, latest_closes
 
 LOOKBACK_DAYS = 365
-STOCK_CLASSES = {"stock"}
+
+
+def book_from_snapshot(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Per-account cash and positions, the shape both the advised book and the
+    tracker work on."""
+    return {
+        a["id"]: {"type": a.get("type", "taxable"), "cash_usd": float(a.get("cash_usd") or 0.0),
+                  "positions": {p["symbol"]: float(p["quantity"]) for p in a["positions"]}}
+        for a in snapshot["accounts"]
+    }
+
+
+def asset_classes(snapshot: dict[str, Any]) -> dict[str, str | None]:
+    out: dict[str, str | None] = {}
+    for a in snapshot["accounts"]:
+        for p in a["positions"]:
+            out.setdefault(p["symbol"], p.get("asset_class"))
+    return out
 
 
 def _f(x: float | None, nd: int = 4) -> float | None:
@@ -41,7 +58,7 @@ def value_snapshot(snapshot: dict[str, Any], prices: dict[str, float]) -> dict[s
             value = qty * price if priced else None
             row = {
                 "account_id": acct["id"], "account_type": acct.get("type", "taxable"),
-                "symbol": sym, "asset_class": ac or _infer_class(sym), "quantity": qty,
+                "symbol": sym, "asset_class": ac or infer_asset_class(sym), "quantity": qty,
                 "price": _f(price, 4), "value_usd": _f(value, 2), "priced": priced,
                 "cost_basis_usd": pos.get("cost_basis_usd"),
                 "unrealized_pnl_usd": _f(value - float(pos["cost_basis_usd"]), 2)
@@ -62,12 +79,6 @@ def value_snapshot(snapshot: dict[str, Any], prices: dict[str, float]) -> dict[s
     for a in accounts_out:
         a["weight"] = _f(a["value_usd"] / total, 4) if total > 0 else None
     return {"total_value_usd": _f(total, 2), "accounts": accounts_out, "positions": positions_out}
-
-
-def _infer_class(symbol: str) -> str:
-    from src.advisor.pricing import _KNOWN_CRYPTO
-
-    return "crypto" if symbol.upper() in _KNOWN_CRYPTO else "stock"
 
 
 def combined_holdings(valued: dict[str, Any]) -> list[dict[str, Any]]:
@@ -156,8 +167,6 @@ def build_evidence(
     unresolved: list[str],
     as_of: date,
 ) -> dict[str, Any]:
-    from src.advisor.pricing import latest_closes
-
     prices = latest_closes(closes)
     valued = value_snapshot(snapshot, prices)
     holdings = combined_holdings(valued)

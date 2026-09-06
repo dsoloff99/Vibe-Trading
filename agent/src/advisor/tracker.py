@@ -1,10 +1,9 @@
 """Track what the advice would have done.
 
-For each review we hold two books frozen at the review date: the actual
-holdings and the hypothetical book after the recommended trades. Marking
-both to market on the same closes, next to SPY, shows the value the advice
-added or cost. Per-recommendation scoring compares each symbol's move since
-the recommendation with SPY over the same window.
+Each review freezes two books on its date: the actual holdings and the
+advised book after the recommended trades. Marking both on the same daily
+closes next to the benchmark shows the value the advice added or cost. Each
+call is also scored on its own against the benchmark over the same window.
 """
 from __future__ import annotations
 
@@ -13,30 +12,17 @@ from typing import Any
 
 import pandas as pd
 
-from src.advisor.pricing import PriceFetcher, fetch_close_panel, is_cash_like, latest_closes
+from src.advisor.evidence import asset_classes, book_from_snapshot
+from src.advisor.pricing import is_cash_like, latest_closes
 
 _DIRECTION = {"buy": 1.0, "hold": 1.0, "sell": -1.0, "trim": -1.0}
-
-
-def _book_from_snapshot(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {a["id"]: {"cash_usd": float(a.get("cash_usd") or 0.0),
-                      "positions": {p["symbol"]: float(p["quantity"]) for p in a["positions"]}}
-            for a in snapshot["accounts"]}
-
-
-def _asset_classes(snapshot: dict[str, Any]) -> dict[str, str | None]:
-    out: dict[str, str | None] = {}
-    for a in snapshot["accounts"]:
-        for p in a["positions"]:
-            out.setdefault(p["symbol"], p.get("asset_class"))
-    return out
+_SCORED_ACTIONS = ("buy", "sell", "trim")  # holds are reported but do not drive the hit rate
 
 
 def _value_curve(book: dict[str, dict[str, Any]], closes: pd.DataFrame, classes: dict[str, str | None]) -> pd.Series:
     """Daily USD value of a frozen book. Symbols without prices are excluded
     consistently so both books stay comparable."""
-    cash = sum(a["cash_usd"] for a in book.values())
-    value = pd.Series(cash, index=closes.index, dtype="float64")
+    value = pd.Series(sum(a["cash_usd"] for a in book.values()), index=closes.index, dtype="float64")
     for a in book.values():
         for sym, qty in a["positions"].items():
             if is_cash_like(sym, classes.get(sym)):
@@ -46,68 +32,76 @@ def _value_curve(book: dict[str, dict[str, Any]], closes: pd.DataFrame, classes:
     return value
 
 
-def score_recommendation(rec: dict[str, Any], price_now: float | None, spy_ret: float | None) -> dict[str, Any]:
+def score_recommendation(rec: dict[str, Any], price_now: float | None, bench_ret: float | None) -> dict[str, Any]:
     p0 = rec.get("price_at_rec")
-    if p0 is None or price_now is None or spy_ret is None or rec["action"] not in _DIRECTION:
-        return {"symbol_return": None, "benchmark_return": spy_ret, "excess": None, "hit": None}
+    if p0 is None or price_now is None or bench_ret is None or rec["action"] not in _DIRECTION:
+        return {"symbol_return": None, "benchmark_return": bench_ret, "excess": None, "hit": None}
     ret = price_now / p0 - 1.0
-    excess = _DIRECTION[rec["action"]] * (ret - spy_ret)
-    return {"symbol_return": round(ret, 4), "benchmark_return": round(spy_ret, 4),
+    excess = _DIRECTION[rec["action"]] * (ret - bench_ret)
+    return {"symbol_return": round(ret, 4), "benchmark_return": round(bench_ret, 4),
             "excess": round(excess, 4), "hit": excess > 0}
 
 
 def review_performance(review: dict[str, Any], snapshot: dict[str, Any], recs: list[dict[str, Any]],
-                       today: date, fetcher: PriceFetcher | None = None) -> dict[str, Any]:
+                       closes: pd.DataFrame, unresolved: list[str]) -> dict[str, Any]:
+    """Mark one review's books on a close panel that starts at or before its date."""
     benchmark = review.get("objectives", {}).get("benchmark", "SPY")
     start = date.fromisoformat(review["created_at"][:10])
-    classes = _asset_classes(snapshot)
-    symbols: dict[str, str | None] = dict(classes)
-    for acct in review.get("hypothetical_book", {}).values():
-        for sym in acct["positions"]:
-            symbols.setdefault(sym, classes.get(sym))
-    for r in recs:
-        symbols.setdefault(r["symbol"], classes.get(r["symbol"]))
-    symbols[benchmark] = "etf"
+    classes = asset_classes(snapshot)
+    gaps = [f"{s}: no prices" for s in unresolved]
+    window = closes[closes.index >= pd.Timestamp(start)] if not closes.empty else closes
+    if benchmark in window.columns:
+        # The benchmark anchors day one. A symbol with no close on that day is
+        # seeded with the price its recommendation was made at, so the advised
+        # book starts at the same value as the actual book; any other gap is
+        # carried at the nearest close so both books stay finite.
+        window = window[window[benchmark].notna()].copy()
+        if not window.empty:
+            for r in recs:
+                sym, p0 = r["symbol"], r.get("price_at_rec")
+                if sym in window.columns and p0 and pd.isna(window[sym].iloc[0]):
+                    window.iloc[0, window.columns.get_loc(sym)] = p0
+        window = window.ffill().bfill()
+    if window.empty or benchmark not in window.columns:
+        return {"review_id": review["id"], "since": start.isoformat(), "status": "no_data", "data_gaps": gaps}
 
-    closes, unresolved = fetch_close_panel(symbols, start, today, fetcher)
-    closes = closes[closes.index >= pd.Timestamp(start)] if not closes.empty else closes
-    if closes.empty or benchmark not in closes.columns:
-        return {"review_id": review["id"], "since": start.isoformat(), "status": "no_data",
-                "data_gaps": [f"{s}: no prices" for s in unresolved]}
+    bench = window[benchmark]
+    actual = _value_curve(book_from_snapshot(snapshot), window, classes)
+    advised = _value_curve(review.get("hypothetical_book", {}), window, classes)
+    base = float(actual.iloc[0])
+    if not base:
+        return {"review_id": review["id"], "since": start.isoformat(), "status": "no_data", "data_gaps": gaps}
+    bench_curve = base * bench / float(bench.iloc[0])
+    bench_ret = float(bench.iloc[-1] / bench.iloc[0] - 1.0)
 
-    spy = closes[benchmark].dropna()
-    actual = _value_curve(_book_from_snapshot(snapshot), closes, classes)
-    hypo = _value_curve(review.get("hypothetical_book", {}), closes, classes)
-    base = float(actual.iloc[0]) if len(actual) else 0.0
-    bench_curve = base * spy / float(spy.iloc[0]) if len(spy) else spy
-
-    now = latest_closes(closes)
-    spy_ret = float(spy.iloc[-1] / spy.iloc[0] - 1.0) if len(spy) > 1 else None
+    now = latest_closes(window)
     scored = [{**{k: r.get(k) for k in ("id", "symbol", "action", "status", "price_at_rec", "amount_usd", "confidence")},
-               "price_now": now.get(r["symbol"]), **score_recommendation(r, now.get(r["symbol"]), spy_ret)}
+               "price_now": now.get(r["symbol"]), **score_recommendation(r, now.get(r["symbol"]), bench_ret)}
               for r in recs]
     curve = [{"date": d.date().isoformat(), "actual": round(float(a), 2), "hypothetical": round(float(h), 2),
-              "benchmark": round(float(b), 2) if pd.notna(b) else None}
-             for d, a, h, b in zip(closes.index, actual, hypo, bench_curve.reindex(closes.index).ffill())]
+              "benchmark": round(float(b), 2)}
+             for d, a, h, b in zip(window.index, actual, advised, bench_curve)]
     return {
-        "review_id": review["id"], "since": start.isoformat(), "as_of": closes.index[-1].date().isoformat(),
-        "status": "ok", "benchmark": benchmark, "benchmark_return": round(spy_ret, 4) if spy_ret is not None else None,
+        "review_id": review["id"], "since": start.isoformat(), "as_of": window.index[-1].date().isoformat(),
+        "status": "ok", "benchmark": benchmark, "benchmark_return": round(bench_ret, 4),
         "actual_value_start": round(base, 2), "actual_value_now": round(float(actual.iloc[-1]), 2),
-        "hypothetical_value_now": round(float(hypo.iloc[-1]), 2),
-        "advice_delta_usd": round(float(hypo.iloc[-1] - actual.iloc[-1]), 2),
-        "actual_return": round(float(actual.iloc[-1] / base - 1.0), 4) if base else None,
-        "hypothetical_return": round(float(hypo.iloc[-1] / base - 1.0), 4) if base else None,
-        "curve": curve, "recommendations": scored,
-        "data_gaps": [f"{s}: no prices" for s in unresolved],
+        "hypothetical_value_now": round(float(advised.iloc[-1]), 2),
+        "advice_delta_usd": round(float(advised.iloc[-1] - actual.iloc[-1]), 2),
+        "actual_return": round(float(actual.iloc[-1] / base - 1.0), 4),
+        "hypothetical_return": round(float(advised.iloc[-1] / base - 1.0), 4),
+        "curve": curve, "recommendations": scored, "data_gaps": gaps,
     }
 
 
 def scorecard(per_review: list[dict[str, Any]]) -> dict[str, Any]:
-    scored = [r for p in per_review if p.get("status") == "ok" for r in p["recommendations"] if r.get("hit") is not None]
+    all_scored = [r for p in per_review if p.get("status") == "ok" for r in p["recommendations"] if r.get("hit") is not None]
     by_action: dict[str, dict[str, Any]] = {}
-    for r in scored:
+    for r in all_scored:
         b = by_action.setdefault(r["action"], {"n": 0, "hits": 0, "excess_sum": 0.0})
-        b["n"] += 1; b["hits"] += int(r["hit"]); b["excess_sum"] += r["excess"]
+        b["n"] += 1
+        b["hits"] += int(r["hit"])
+        b["excess_sum"] += r["excess"]
+    scored = [r for r in all_scored if r["action"] in _SCORED_ACTIONS]
     n = len(scored)
     return {
         "reviews": len(per_review), "scored_recommendations": n,

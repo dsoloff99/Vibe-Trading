@@ -9,7 +9,7 @@
 export type AccountType = "taxable" | "roth_ira" | "traditional_ira" | "401k" | "hsa" | "crypto" | "other";
 export type AssetClass = "stock" | "etf" | "crypto" | "bond" | "cash" | "other";
 export type Action = "buy" | "sell" | "trim" | "hold";
-export type RecStatus = "open" | "accepted" | "rejected" | "expired";
+export type RecStatus = "open" | "accepted" | "rejected";
 
 export interface PositionIn { symbol: string; quantity: number; cost_basis_usd?: number; asset_class?: AssetClass }
 export interface AccountIn { id: string; name: string; type: AccountType; cash_usd: number; positions: PositionIn[] }

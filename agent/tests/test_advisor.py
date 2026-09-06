@@ -18,7 +18,7 @@ from src.advisor.models import DecisionIn, HoldingsIn, ReviewRequest
 from src.advisor.pricing import fetch_close_panel, loader_symbol
 from src.advisor.service import AdvisorService, apply_recommendations
 from src.advisor.store import AdvisorStore
-from src.advisor.tracker import review_performance, score_recommendation, scorecard
+from src.advisor.tracker import score_recommendation, scorecard
 from src.api import advisor_routes
 
 TODAY = date(2026, 9, 4)
@@ -91,13 +91,13 @@ REVIEW_JSON = {
 
 class FakeLLM:
     model_name = "fake-model"
-    calls = 0
 
     def __init__(self, replies):
         self._replies = list(replies)
+        self.seen: list[list[dict]] = []
 
     def chat(self, messages, tools=None, timeout=None):
-        FakeLLM.calls += 1
+        self.seen.append(list(messages))
         return SimpleNamespace(content=self._replies.pop(0))
 
     def close(self):
@@ -170,7 +170,7 @@ def test_review_prices_recommendations_and_builds_hypothetical_book(service):
     cost = recs["COST"]
     assert cost["is_new_position"] is True and cost["priced"] is True
     assert cost["resolved_account_id"] == "schwab-taxable"  # most cash
-    assert recs["AAPL"]["quantity"] is None  # hold is a no-op
+    assert recs["AAPL"]["quantity"] is None and recs["AAPL"]["resolved_account_id"] == "schwab-taxable"  # hold is a no-op
 
     book = review["hypothetical_book"]
     assert book["schwab-roth"]["positions"]["VTI"] == pytest.approx(30 + 3000 / price_on("VTI.US", TODAY), rel=1e-4)
@@ -184,11 +184,39 @@ def test_review_prices_recommendations_and_builds_hypothetical_book(service):
 
 
 def test_review_retries_once_on_bad_json(tmp_path):
-    svc = AdvisorService(AdvisorStore(tmp_path / "a.sqlite3"), price_fetcher=fake_fetch, now=lambda: NOW,
-                         llm_factory=lambda: FakeLLM(["not json at all", "```json\n" + json.dumps(REVIEW_JSON) + "\n```"]))
+    llm = FakeLLM(["not json at all", "Sure, here it is:\n```json\n" + json.dumps(REVIEW_JSON) + "\n```\nLet me know."])
+    svc = AdvisorService(AdvisorStore(tmp_path / "a.sqlite3"), price_fetcher=fake_fetch, now=lambda: NOW, llm_factory=lambda: llm)
     svc.push_holdings(HoldingsIn(**HOLDINGS))
     review = svc.review(ReviewRequest())
     assert len(review["recommendations"]) == 4
+    retry = llm.seen[1]
+    assert retry[-2] == {"role": "assistant", "content": "not json at all"} and "rejected" in retry[-1]["content"]
+
+
+def test_review_keeps_a_held_benchmark_priced(tmp_path):
+    holdings = {"accounts": [{"id": "a", "name": "A", "type": "taxable", "cash_usd": 0,
+                              "positions": [{"symbol": "SPY", "quantity": 10, "asset_class": "etf"},
+                                            {"symbol": "AAPL", "quantity": 10}]}]}
+    out = {**REVIEW_JSON, "recommendations": []}
+    svc = AdvisorService(AdvisorStore(tmp_path / "a.sqlite3"), price_fetcher=fake_fetch, now=lambda: NOW,
+                         llm_factory=lambda: FakeLLM([json.dumps(out)]))
+    svc.push_holdings(HoldingsIn(**holdings))
+    review = svc.review(ReviewRequest())
+    assert review["total_value_usd"] == pytest.approx(10 * price_on("SPY.US", TODAY) + 10 * price_on("AAPL.US", TODAY), rel=1e-6)
+    assert review["benchmark"]["symbol"] == "SPY" and not review["data_gaps"]
+
+
+def test_cash_like_recommendation_is_priced_at_one(tmp_path):
+    holdings = {"accounts": [{"id": "a", "name": "A", "type": "crypto", "cash_usd": 0,
+                              "positions": [{"symbol": "USDC", "quantity": 500, "asset_class": "cash"},
+                                            {"symbol": "BTC", "quantity": 0.1, "asset_class": "crypto"}]}]}
+    out = {**REVIEW_JSON, "recommendations": [
+        {"action": "sell", "symbol": "USDC", "amount_usd": 200, "rationale": "Move idle stablecoin into the core.", "confidence": 0.6}]}
+    svc = AdvisorService(AdvisorStore(tmp_path / "a.sqlite3"), price_fetcher=fake_fetch, now=lambda: NOW,
+                         llm_factory=lambda: FakeLLM([json.dumps(out)]))
+    svc.push_holdings(HoldingsIn(**holdings))
+    rec = svc.review(ReviewRequest())["recommendations"][0]
+    assert rec["price_at_rec"] == 1.0 and rec["quantity"] == 200 and rec["resolved_account_id"] == "a"
 
 
 def test_review_requires_holdings(service):
@@ -219,11 +247,27 @@ def test_apply_recommendations_target_weight_and_full_sell():
         {"action": "trim", "symbol": "AAPL", "target_weight": 0.2, "price_at_rec": 100.0},   # 1000 -> 600: sell 4
         {"action": "sell", "symbol": "VTI", "price_at_rec": 100.0},
         {"action": "buy", "symbol": "MSFT", "target_weight": 0.1, "price_at_rec": 50.0},    # 300 -> 6 shares
+        {"action": "buy", "symbol": "AAPL", "target_weight": 0.1, "price_at_rec": 100.0, "account_id": "zzz"},  # already above target: no-op
     ]
     book = apply_recommendations(snapshot, prices, recs)
     assert book["a"]["positions"] == {"AAPL": 6.0, "MSFT": 6.0}
     assert book["a"]["cash_usd"] == pytest.approx(1000 + 400 + 1000 - 300)
     assert recs[0]["quantity"] == 4 and recs[1]["quantity"] == 10 and recs[2]["amount_usd"] == 300
+    assert recs[3].get("quantity") is None and recs[3]["resolved_account_id"] == "a"
+
+
+def test_apply_recommendations_partial_sell_drains_accounts_largest_first():
+    snapshot = {"accounts": [
+        {"id": "a", "type": "taxable", "cash_usd": 0, "positions": [{"symbol": "VTI", "quantity": 40}]},
+        {"id": "b", "type": "roth_ira", "cash_usd": 0, "positions": [{"symbol": "VTI", "quantity": 30}]},
+    ]}
+    recs = [{"action": "sell", "symbol": "VTI", "amount_usd": 5000, "price_at_rec": 100.0},   # 50 shares: 40 from a, 10 from b
+            {"action": "sell", "symbol": "VTI", "price_at_rec": 100.0}]                        # the rest
+    book = apply_recommendations(snapshot, {"VTI": 100.0}, recs)
+    assert recs[0]["quantity"] == 50 and recs[0]["amount_usd"] == 5000 and recs[0]["resolved_account_id"] == "a"
+    assert recs[1]["quantity"] == 20 and recs[1]["resolved_account_id"] == "b"
+    assert book["a"] == {"type": "taxable", "cash_usd": 4000.0, "positions": {}}
+    assert book["b"] == {"type": "roth_ira", "cash_usd": 3000.0, "positions": {}}
 
 
 # ── decisions and tracking ────────────────────────────────────────────────────
@@ -245,11 +289,10 @@ def test_score_recommendation_direction():
 
 def test_review_performance_marks_both_books_against_spy(service):
     service.push_holdings(HoldingsIn(**HOLDINGS))
-    review = service.review(ReviewRequest())
-    later = TODAY + timedelta(days=30)
-    snapshot = service.store.get_snapshot(review["snapshot_id"])
-    recs = service.store.list_recommendations(review_id=review["id"])
-    perf = review_performance(review, snapshot, recs, later, fake_fetch)
+    service.review(ReviewRequest())
+    service._now = lambda: NOW + timedelta(days=30)
+    out = service.performance()
+    perf = out["reviews"][0]
     assert perf["status"] == "ok" and perf["since"] == TODAY.isoformat()
     assert perf["curve"][0]["actual"] == pytest.approx(perf["curve"][0]["hypothetical"], rel=1e-6), \
         "both books start at the same value on the review date"
@@ -258,9 +301,35 @@ def test_review_performance_marks_both_books_against_spy(service):
     assert perf["advice_delta_usd"] < 0
     nvda = next(r for r in perf["recommendations"] if r["symbol"] == "NVDA")
     assert nvda["hit"] is False and nvda["symbol_return"] > nvda["benchmark_return"]
-    card = scorecard([perf])
-    assert card["scored_recommendations"] == 4 and 0 <= card["hit_rate"] <= 1
-    assert "trim" in card["by_action"]
+    card = out["scorecard"]
+    assert card["scored_recommendations"] == 3, "holds are reported but do not count toward the hit rate"
+    assert 0 <= card["hit_rate"] <= 1 and "trim" in card["by_action"] and "hold" in card["by_action"]
+    assert json.dumps(out, allow_nan=False)
+
+
+def test_performance_stays_finite_when_a_symbol_starts_trading_after_the_review(service):
+    """A recommended new position with no history on the review date must not
+    poison the curves with NaN (the route would 500 on serialisation)."""
+    service.push_holdings(HoldingsIn(**HOLDINGS))
+    review = service.review(ReviewRequest())
+    late_start = TODAY + timedelta(days=7)
+
+    def gappy_fetch(codes, start, end):
+        out = fake_fetch(codes, start, end)
+        out["COST.US"] = [r for r in out.get("COST.US", []) if date.fromisoformat(r["date"]) >= late_start]
+        return out
+
+    service._fetch = gappy_fetch
+    service._now = lambda: NOW + timedelta(days=30)
+    out = service.performance(review["id"])
+    perf = out["reviews"][0]
+    assert perf["status"] == "ok"
+    assert json.dumps(out, allow_nan=False)
+    assert perf["curve"][0]["actual"] == pytest.approx(perf["curve"][0]["hypothetical"], rel=1e-6)
+
+
+def test_performance_with_no_reviews_is_empty(service):
+    assert service.performance() == {"scorecard": scorecard([]), "reviews": []}
 
 
 # ── routes ────────────────────────────────────────────────────────────────────
@@ -291,6 +360,7 @@ def test_routes_end_to_end(client):
     assert r.json()["recommendation"]["status"] == "rejected"
     assert client.get("/advisor/recommendations", params={"status": "open"}).json()["recommendations"]
     assert client.get("/advisor/recommendations", params={"status": "bogus"}).status_code == 422
+    assert "hypothetical_book" not in review and "hypothetical_book" not in client.get(f"/advisor/reviews/{review['id']}").json()["review"]
     perf = client.get("/advisor/performance").json()
     assert perf["scorecard"]["reviews"] == 1 and perf["reviews"][0]["status"] == "ok"
     assert client.get("/advisor/performance", params={"review_id": "nope"}).status_code == 404

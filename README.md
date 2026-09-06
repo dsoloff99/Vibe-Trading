@@ -1216,7 +1216,7 @@ vibe-trading run -p "Summarize the key risks and beats/misses from this earnings
 
 ## 🌐 API Server
 
-> **Building a personal finance app on top?** The read-only advisor API (push holdings, get a wealth-manager review with priced buy/sell/trim/hold recommendations, and track the advice against SPY) is documented in [docs/advisor-integration.md](docs/advisor-integration.md), with a TypeScript client and React section under `integrations/finance-app/`.
+> **Building a personal finance app on top?** The read-only advisor API (push holdings, get a wealth-manager review with priced buy/sell/trim/hold recommendations, and track the advice against SPY) is documented in [integrations/finance-app/README.md](integrations/finance-app/README.md), with a TypeScript client and React section under `integrations/finance-app/`.
 
 ```bash
 vibe-trading serve --port 8899

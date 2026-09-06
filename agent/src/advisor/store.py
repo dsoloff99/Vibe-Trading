@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +52,7 @@ class AdvisorStore:
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or (get_runtime_root() / "advisor" / "advisor.sqlite3")
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             db.executescript(_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
@@ -61,7 +62,7 @@ class AdvisorStore:
 
     # ── snapshots ─────────────────────────────────────────────────────────
     def save_snapshot(self, snapshot: dict[str, Any]) -> None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             db.execute(
                 "INSERT INTO snapshots (id, created_at, source, as_of, payload) VALUES (?,?,?,?,?)",
                 (snapshot["id"], snapshot["created_at"], snapshot.get("source", ""),
@@ -69,18 +70,18 @@ class AdvisorStore:
             )
 
     def get_snapshot(self, snapshot_id: str) -> dict[str, Any] | None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT payload FROM snapshots WHERE id=?", (snapshot_id,)).fetchone()
         return json.loads(row["payload"]) if row else None
 
     def latest_snapshot(self) -> dict[str, Any] | None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT payload FROM snapshots ORDER BY created_at DESC LIMIT 1").fetchone()
         return json.loads(row["payload"]) if row else None
 
     # ── reviews ───────────────────────────────────────────────────────────
     def save_review(self, review: dict[str, Any], recommendations: list[dict[str, Any]]) -> None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             db.execute(
                 "INSERT INTO reviews (id, created_at, snapshot_id, model, payload) VALUES (?,?,?,?,?)",
                 (review["id"], review["created_at"], review["snapshot_id"], review.get("model"), _dumps(review)),
@@ -93,12 +94,12 @@ class AdvisorStore:
             )
 
     def get_review(self, review_id: str) -> dict[str, Any] | None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT payload FROM reviews WHERE id=?", (review_id,)).fetchone()
         return json.loads(row["payload"]) if row else None
 
     def list_reviews(self, limit: int = 50) -> list[dict[str, Any]]:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             rows = db.execute("SELECT payload FROM reviews ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [json.loads(r["payload"]) for r in rows]
 
@@ -108,14 +109,16 @@ class AdvisorStore:
         sql = "SELECT payload, status, decided_at, note FROM recommendations"
         clauses, args = [], []
         if status:
-            clauses.append("status=?"); args.append(status)
+            clauses.append("status=?")
+            args.append(status)
         if review_id:
-            clauses.append("review_id=?"); args.append(review_id)
+            clauses.append("review_id=?")
+            args.append(review_id)
         if clauses:
             sql += " WHERE " + " AND ".join(clauses)
         sql += " ORDER BY created_at DESC LIMIT ?"
         args.append(limit)
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             rows = db.execute(sql, args).fetchall()
         out = []
         for r in rows:
@@ -125,7 +128,7 @@ class AdvisorStore:
         return out
 
     def get_recommendation(self, rec_id: str) -> dict[str, Any] | None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             r = db.execute("SELECT payload, status, decided_at, note FROM recommendations WHERE id=?", (rec_id,)).fetchone()
         if not r:
             return None
@@ -134,7 +137,7 @@ class AdvisorStore:
         return rec
 
     def decide(self, rec_id: str, status: str, note: str, decided_at: str) -> dict[str, Any] | None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             cur = db.execute(
                 "UPDATE recommendations SET status=?, note=?, decided_at=? WHERE id=?",
                 (status, note, decided_at, rec_id),

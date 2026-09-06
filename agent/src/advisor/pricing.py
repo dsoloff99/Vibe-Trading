@@ -8,7 +8,7 @@ the rest of the advisor never sees loader conventions.
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, Callable, Iterable
 
 import pandas as pd
@@ -30,6 +30,10 @@ def is_cash_like(symbol: str, asset_class: str | None) -> bool:
     return asset_class == "cash" or symbol.upper() in _STABLECOINS
 
 
+def infer_asset_class(symbol: str) -> str:
+    return "crypto" if symbol.upper() in _KNOWN_CRYPTO else "stock"
+
+
 def loader_symbol(symbol: str, asset_class: str | None = None) -> str:
     """Map an app symbol to the spelling the loader chain routes correctly."""
     s = symbol.strip().upper()
@@ -45,7 +49,7 @@ def _default_fetch(codes: list[str], start: str, end: str) -> dict[str, Any]:
 
     return fetch_market_data(
         codes=codes, start_date=start, end_date=end, source="auto",
-        interval="1D", max_rows=100_000,
+        interval="1D", max_rows=0,
     )
 
 
@@ -100,12 +104,9 @@ def fetch_close_panel(
     return closes, unresolved
 
 
-def lookback_start(end: date, days: int) -> date:
-    return end - timedelta(days=days)
-
-
 def latest_closes(closes: pd.DataFrame) -> dict[str, float]:
+    """Last known close per column (the panel is already forward-filled)."""
     if closes.empty:
         return {}
-    last = closes.ffill().iloc[-1]
+    last = closes.iloc[-1]
     return {str(k): float(v) for k, v in last.items() if pd.notna(v)}

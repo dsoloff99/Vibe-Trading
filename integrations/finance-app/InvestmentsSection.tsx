@@ -35,7 +35,9 @@ export function InvestmentsSection({ loadHoldings }: { loadHoldings: () => Promi
     } catch (e) { setError(String(e)); } finally { setBusy(null); }
   };
 
-  const decide = async (id: string, status: "accepted" | "rejected") => { await client.decide(id, status); await refresh(); };
+  const decide = async (id: string, status: "accepted" | "rejected") => {
+    try { await client.decide(id, status); await refresh(); } catch (e) { setError(String(e)); }
+  };
 
   return (
     <section>
